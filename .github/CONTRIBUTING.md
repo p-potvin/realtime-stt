@@ -3,6 +3,9 @@
 Welcome! To maintain code quality and security standards, please follow these guidelines when using Gemini Code Assist or writing manual code.
 
 ## 🏗️ Folder Structure
+
+- **When creating a new repository:** Always make sure that you start from the template `vaultwares-template` to include all the necessary files.
+
 - `/app`: Next.js App Router (Pages and API routes).
 - `/components/ui`: Atomic Shadcn components (Do not modify directly).
 - `/components/features`: Feature-specific logic (e.g., `/cart`, `/checkout`).
