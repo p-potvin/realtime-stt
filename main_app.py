@@ -1,13 +1,12 @@
 import sys
 import threading
-import queue
 import numpy as np
-import time
 import logging
 import random
 import string
 import argparse
 import vault_sync
+import soundfile as sf
 from PySide6.QtWidgets import QApplication
 
 # Run vault synchronization at startup
@@ -56,7 +55,23 @@ class RealTimeSTTApp:
         # Audio capturing at 16kHz Mono
         # Silero VAD requires specific chunk sizes (512, 1024, or 1536 samples at 16kHz)
         # We'll use 512 samples (~32ms) to minimize latency and satisfy VAD requirements
-        self.recorder = AudioRecorder(samplerate=16000, blocksize=512)
+        
+        # Determine the correct device index for VB-Audio Virtual Cable
+        # Based on user input, we need to listen to the virtual output cable.
+        device_index = None
+        try:
+            import sounddevice as sd
+            devices = sd.query_devices()
+            for i, dev in enumerate(devices):
+                # We look for "CABLE Output" which is the recording end of the virtual cable
+                if "CABLE Output" in dev['name'] and dev['max_input_channels'] > 0:
+                    device_index = i
+                    self.logger.info(f"Automatically selected VB-Audio device: {dev['name']} (Index: {i})")
+                    break
+        except Exception as e:
+            self.logger.warning(f"Could not auto-detect audio device: {e}")
+
+        self.recorder = AudioRecorder(device_index=device_index, samplerate=16000, blocksize=512)
         
         self.is_running = False
         self.speech_buffer = []
@@ -98,20 +113,35 @@ class RealTimeSTTApp:
                     self.speech_buffer = self.speech_buffer[-32:] 
             else:
                 silence_counter += 1
-                
-                # If we were processing speech and now it's silent, flush
-                if self.speech_buffer and silence_counter >= max_silence_chunks:
-                    self._request_transcription()
+                if silence_counter >= max_silence_chunks and self.speech_buffer:
+                    # Minimum trigger check here to prevent tiny ghost audio
+                    if len(self.speech_buffer) >= self.min_speech_trigger:
+                        self._request_transcription()
                     self.speech_buffer = []
-                    silence_counter = 0
+
+    def start(self):
+        """Starts the capture and processing threads."""
+        self.is_running = True
+        self.recorder.start_recording()
+        
+        self.thread = threading.Thread(target=self.processing_loop, daemon=True)
+        self.thread.start()
+
+    def stop(self):
+        """Stops the app and cleans up."""
+        self.is_running = False
+        self.recorder.stop_recording()
+        if hasattr(self, 'thread'):
+            self.thread.join(timeout=1.0)
 
     def _request_transcription(self):
         """Combines buffer and runs Whisper transcription."""
-        if not self.speech_buffer or len(self.speech_buffer) < self.min_speech_trigger:
+        if not self.speech_buffer:
             return
             
         try:
-            full_audio = np.concatenate(self.speech_buffer)
+            full_audio = np.concatenate(self.speech_buffer)            
+
             # Use the specialized chunk method for speed, pass language
             # Faster-Whisper's model.transcribe handles language
             segments, info = self.stt.transcribe(
@@ -135,13 +165,13 @@ class RealTimeSTTApp:
         app = QApplication(sys.argv)
         
         # Create and show the overlay with initial theme
-        overlay = TransparentOverlay(theme_idx=self.theme_idx)
-        overlay.show()
+        self.overlay = TransparentOverlay(theme_idx=self.theme_idx)
+        self.overlay.show()
         
         # Connect signals
-        self.bridge.update_caption_signal.connect(overlay.update_caption)
-        overlay.debug_toggle_signal.connect(self._toggle_debug_logs)
-        overlay.exit_requested_signal.connect(app.quit)
+        self.bridge.update_caption_signal.connect(self.overlay.update_caption)
+        self.overlay.debug_toggle_signal.connect(self._toggle_debug_logs)
+        self.overlay.exit_requested_signal.connect(app.quit)
         
         self.is_running = True
         

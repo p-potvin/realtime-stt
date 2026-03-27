@@ -4,7 +4,7 @@
 
 # 🎯 Current Mission Control
 
-    Active Goal: Real-time Speech-to-Text (STT) Desktop Overlay with Faster-Whisper and Silero VAD.
+    Active Goal: [x] Core Infrastructure & Template Injection [ ] Real-time Engine & Model Optimization.
 
     Success Criteria: 
     - Real-time transcription using Faster-Whisper (target RTX 3060).
@@ -12,8 +12,13 @@
     - Draggable, resizable, transparent PySide6 overlay with "Glass UI" 9-theme system.
     - Advanced customization: Color pickers for text/outline, SpinBoxes for size/width, double-click to reset position.
 
-    Blocked By: 
-    - None. Core infrastructure is stable.
+    Update Policy: Omit "Summary of Accomplishments" in tasks unless requested.
+
+# 📜 Coding Standards & Refactoring Logic
+    **CRITICAL**: Always perform a complete code cleanup after refactoring.
+    - **No Dead Code**: Remove all unused imports, variables, and orphan functions immediately.
+    - **Scan for Drift**: Before finishing, verify that indentations, scoping, and logic remain clean.
+    - **Instruction Persistence**: All future changes must follow the guidelines in `INSTRUCTIONS.md`.
 
 # 🏗️ Architectural Map (The "Memory Bank")
 
