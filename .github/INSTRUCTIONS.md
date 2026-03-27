@@ -57,7 +57,7 @@ These are general guidelines to apply when coding under the VaultWares umbrella.
 
 - **Performance:** Keep the bloating to a minimum and optimize your methods. e.g., Implement React Suspense for loading states and utilize Next.js Image component for all assets.
 
-- **CorrelationId:** Always implement the functionality 'CorrelationId' in logs to allow easy debugging.
+- **CorrelationId:** Always implement the functionality 'CorrelationId' in logs to allow easy debugging. The CorrelationId should be a 7 alphanumeric characters string that starts with a lowercase 'c' (e.g., c1a2b3c). This allows us to easily trace logs related to a specific request or action across the entire system.
 
 - **Code Review:** Review your code before finalizing to make sure there are no syntax errors, trailing artifacts, debugging statements, unused imports, etc.
 

@@ -90,6 +90,7 @@ class FasterWhisperWrapper:
     def get_model(self):
         """
         Retrieves or initializes the Whisper model using a thread-safe singleton pattern per configuration.
+        Tries CUDA first, falls back to CPU on OOM or other failures.
         """
         cache_key = (self.model_size, self.device, self.compute_type)
         
@@ -98,16 +99,33 @@ class FasterWhisperWrapper:
                 if WhisperModel is None:
                     raise ImportError("faster-whisper is not installed. Please install it via pip.")
                 
-                with self._spinning_cursor(f"Initializing Faster-Whisper ({self.model_size}) on {self.device}..."):
+                with self._spinning_cursor(f"Initializing Faster-Whisper ({self.model_size})..."):
                     try:
+                        # Try initial device
                         self._MODEL_CACHE[cache_key] = WhisperModel(
                             self.model_size,
                             device=self.device,
                             compute_type=self.compute_type,
                             cpu_threads=self.cpu_threads
                         )
-                    except Exception as e:
-                        raise RuntimeError(f"Failed to initialize Faster-Whisper: {e}")
+                        self.logger.info(f"Initialized Faster-Whisper on {self.device}")
+                    except (RuntimeError, Exception) as e:
+                        if self.device == "cuda":
+                            self.logger.warning(f"Failed to initialize on CUDA (OOM or error): {e}. Falling back to CPU...")
+                            try:
+                                # Fallback to CPU, use int8 for efficiency on CPU
+                                fallback_key = (self.model_size, "cpu", "int8")
+                                self._MODEL_CACHE[cache_key] = WhisperModel(
+                                    self.model_size,
+                                    device="cpu",
+                                    compute_type="int8",
+                                    cpu_threads=self.cpu_threads
+                                )
+                                self.logger.info("Successfully fell back to CPU.")
+                            except Exception as cpu_e:
+                                raise RuntimeError(f"Failed both CUDA and CPU initialization: {cpu_e}")
+                        else:
+                            raise RuntimeError(f"Failed to initialize Faster-Whisper on {self.device}: {e}")
             
             self.model = self._MODEL_CACHE[cache_key]
             return self.model
@@ -179,6 +197,9 @@ class FasterWhisperWrapper:
 
     def log_info(self, msg: str):
         self.logger.info(msg)
+
+    def log_debug(self, msg: str):
+        self.logger.debug(msg)
 
     def log_error(self, msg: str):
         self.logger.error(msg)

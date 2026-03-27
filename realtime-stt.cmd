@@ -19,6 +19,6 @@ echo Verifying dependencies...
 pip install -r "%~dp0requirements.txt" --quiet
 
 echo Starting Real-Time STT...
-python "%APP_MAIN%" %*
+python "%APP_MAIN%" --model large-v3 --device cuda --lang en --theme 2 %*
 
 pause
