@@ -8,11 +8,11 @@ class AudioRecorder:
     A robust audio recorder using sounddevice with WASAPI loopback support.
     Designed for real-time capture from virtual cables (e.g., VoiceMeeter).
     """
-    def __init__(self, device_index=None, samplerate=16000, channels=1, blocksize=4000):
+    def __init__(self, device_index=None, samplerate=16000, channels=1, blocksize=512):
         self.device_index = device_index
         self.samplerate = samplerate
         self.channels = channels
-        self.blocksize = blocksize  # ~250ms at 16kHz
+        self.blocksize = blocksize  # ~32ms at 16kHz
         self.stream = None
         self.audio_queue = queue.Queue()
         self.logger = logging.getLogger("vaultwares.audio")
@@ -86,7 +86,7 @@ if __name__ == "__main__":
             chunk = recorder.get_chunk(timeout=1.0)
             if chunk is not None:
                 print(f"Captured chunk: {len(chunk)} samples")
-            time.sleep(0.5)
+            time.sleep(0.3)
     finally:
         recorder.stop_recording()
 

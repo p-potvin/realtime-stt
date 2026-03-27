@@ -213,7 +213,7 @@ class TransparentOverlay(QMainWindow):
         work_geo = screen.availableGeometry()
         
         width = screen_geo.width()
-        height = 240
+        height = 300
         x = 0
         y = work_geo.height() - height
         self.setGeometry(x, y, width, height)
@@ -369,6 +369,11 @@ class TransparentOverlay(QMainWindow):
         
         self.caption_container.setStyleSheet("QFrame { background-color: transparent; border-radius: 15px; }")
         self.settings_toggle.setStyleSheet(f"color: {accent}; font-family: 'Segoe UI Semilight';")
+
+    def _update_theme(self, index):
+        self.current_theme_idx = index + 1
+        self.apply_panel_style()
+        self._apply_styles()
 
     def _update_font_family(self, font):
         self.font_family = font.family()

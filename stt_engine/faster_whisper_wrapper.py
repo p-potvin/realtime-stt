@@ -26,9 +26,9 @@ class FasterWhisperWrapper:
 
     def __init__(
         self, 
-        model_size: str = "medium", 
+        model_size: str = "tiny", 
         device: str = "cuda", 
-        compute_type: str = "float16",
+        compute_type: str = "int8",
         cpu_threads: int = 4,
         logger_name: str = "vaultwares.stt"
     ):

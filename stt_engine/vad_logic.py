@@ -1,4 +1,3 @@
-import os
 import torch
 import numpy as np
 import logging
@@ -20,9 +19,11 @@ class SileroVADWrapper:
         self._initialize_model()
 
     def _initialize_model(self):
-        """Loads the Silero VAD model via torch.hub. Tries CUDA, falls back to CPU."""
+        """Loads the Silero VAD model via torch.hub. Tries CPU, falls back to CUDA."""
         try:
             self.logger.info(f"Attempting to initialize Silero VAD (initial target: {self.device})...")
+
+            torch.set_num_threads(1)  # Limit to 1 thread for VAD to reduce CPU contention
             # Cache handled locally in ~/.cache/torch/hub/
             self.model, self.utils = torch.hub.load(
                 repo_or_dir='snakers4/silero-vad', 
@@ -30,8 +31,9 @@ class SileroVADWrapper:
                 force_reload=False,
                 trust_repo=True
             )
+
             
-            # Attemp move to device (CUDA by default)
+            # Attempt move to device (CPU by default)
             try:
                 self.model.to(self.device)
                 self.logger.info(f"Silero VAD successfully moved to {self.device}.")
@@ -68,7 +70,7 @@ class SileroVADWrapper:
             
             # Forward pass through the model
             with torch.no_grad():
-                speech_prob = self.model(audio_tensor, self.samplerate).item()
+                speech_prob = self.model(audio_tensor, self.samplerate).item()                
             
             self.logger.debug(f"Speech probability: {speech_prob:.4f}")
             return speech_prob
@@ -76,13 +78,13 @@ class SileroVADWrapper:
             self.logger.warning(f"Error calculating speech probability: {e}")
             return 0.0
 
-    def is_speech(self, audio_chunk, threshold=0.5):
+    def is_speech(self, audio_chunk, threshold=0.4):
         """
         Simple boolean check for speech activity.
         
         Args:
             audio_chunk (np.ndarray): 1D float32 numpy array.
-            threshold (float): Detection threshold (default 0.5).
+            threshold (float): Detection threshold (default 0.4).
             
         Returns:
             bool: True if probability >= threshold.

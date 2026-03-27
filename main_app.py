@@ -34,7 +34,7 @@ class RealTimeSTTApp:
     Core Application orchestrating audio capture, VAD filtering, 
     Faster-Whisper transcription, and GUI overlay updates.
     """
-    def __init__(self, model_size="large-v3", device="cuda", language="en", theme_idx=2):
+    def __init__(self, model_size="medium", device="cpu", language="en", theme_idx=2):
         self.correlation_id = "c" + "".join(random.choices(string.ascii_lowercase + string.digits, k=6))
         self.logger = logging.getLogger("vaultwares.main")
         self.logger.info(f"Starting realtime-stt app (CorrelationId: {self.correlation_id})")
@@ -42,8 +42,9 @@ class RealTimeSTTApp:
         self.theme_idx = theme_idx
         
         # Initialize Core components with VaultWares standard logging
-        # Silero VAD is lightweight - attempt CUDA, fall back to CPU if needed (handled in wrapper)
-        self.vad = SileroVADWrapper(device="cuda" if device == "cuda" else "cpu")
+        # Silero VAD is optimized for CPU - but in case:
+        # attempt CUDA, fall back to CPU if needed (handled in wrapper)
+        self.vad = SileroVADWrapper(device="cpu" if device == "cpu" else "cuda")
         
         # Faster-Whisper on RTX 3060 CUDA by default, fallback handled inside get_model()
         self.stt = FasterWhisperWrapper(
@@ -51,9 +52,10 @@ class RealTimeSTTApp:
             device=device,
             compute_type="float16" if device == "cuda" else "int8"
         )
+        self.stt.get_model()  # Preload model to reduce first inference latency
         
         # Audio capturing at 16kHz Mono
-        # Silero VAD requires specific chunk sizes (512, 1024, or 1536 samples at 16kHz)
+        # Silero VAD requires specific chunk sizes (512 samples at 16kHz or 256 at 8kHz)
         # We'll use 512 samples (~32ms) to minimize latency and satisfy VAD requirements
         
         # Determine the correct device index for VB-Audio Virtual Cable
@@ -78,8 +80,8 @@ class RealTimeSTTApp:
         self.bridge = CommunicationBridge()
         
         # Sliding window parameters
-        self.max_buffer_size = 96  # ~3 seconds of audio (96 * 32ms chunks)
-        self.min_speech_trigger = 16 # ~500ms minimum to attempt transcription
+        self.max_buffer_size = 15  # ~3 seconds of audio (90 * 32ms chunks)
+        self.min_speech_trigger = 15 # ~2 second minimum to attempt transcription
 
     def processing_loop(self):
         """
@@ -92,10 +94,10 @@ class RealTimeSTTApp:
         self.logger.info("Processing loop started.")
         
         silence_counter = 0
-        max_silence_chunks = 45 # ~1.4 seconds of silence to flush buffer (45 * 32ms)
+        max_silence_chunks = 0.5 * self.max_buffer_size # ~1.0 seconds of silence to flush buffer
         
         while self.is_running:
-            chunk = self.recorder.get_chunk(timeout=1.0)
+            chunk = self.recorder.get_chunk(timeout=0)
             if chunk is None:
                 continue
             
@@ -109,8 +111,9 @@ class RealTimeSTTApp:
                 # If we've accumulated significant speech, perform partial transcription
                 if len(self.speech_buffer) >= self.max_buffer_size:
                     self._request_transcription()
-                    # Slide the window (keep ~1 sec overlap for context)
-                    self.speech_buffer = self.speech_buffer[-32:] 
+                    # Slide the window (keep 32 ms overlap for context)
+                    self.speech_buffer = self.speech_buffer[-1:]
+                    #self.vad.model.reset_states()  # Reset internal states for next chunk
             else:
                 silence_counter += 1
                 if silence_counter >= max_silence_chunks and self.speech_buffer:
@@ -118,11 +121,12 @@ class RealTimeSTTApp:
                     if len(self.speech_buffer) >= self.min_speech_trigger:
                         self._request_transcription()
                     self.speech_buffer = []
+                    #self.vad.model.reset_states()  # Reset internal states for next chunk
 
     def start(self):
         """Starts the capture and processing threads."""
         self.is_running = True
-        self.recorder.start_recording()
+        self.recorder.start_recording()       
         
         self.thread = threading.Thread(target=self.processing_loop, daemon=True)
         self.thread.start()
@@ -132,7 +136,7 @@ class RealTimeSTTApp:
         self.is_running = False
         self.recorder.stop_recording()
         if hasattr(self, 'thread'):
-            self.thread.join(timeout=1.0)
+            self.thread.join(timeout=0)
 
     def _request_transcription(self):
         """Combines buffer and runs Whisper transcription."""
@@ -209,8 +213,8 @@ class RealTimeSTTApp:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="VaultWares Real-Time STT")
-    parser.add_argument("--model", type=str, default="large-v3", help="Faster-Whisper model size")
-    parser.add_argument("--device", type=str, default="cuda", help="Execution device (cuda/cpu)")
+    parser.add_argument("--model", type=str, default="medium", help="Faster-Whisper model size")
+    parser.add_argument("--device", type=str, default="cpu", help="Execution device (cuda/cpu)")
     parser.add_argument("--lang", type=str, default="en", help="Target language (e.g., en, fr, es)")
     parser.add_argument("--theme", type=int, default=2, help="Initial theme index (1-9)")
     args = parser.parse_args()

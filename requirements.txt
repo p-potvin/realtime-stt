@@ -6,3 +6,4 @@ pydub
 pyside6
 soundfile
 sounddevice
+hf_xet
