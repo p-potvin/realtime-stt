@@ -9,14 +9,16 @@ class SileroVADWrapper:
     
     Optimized to minimize CPU usage while filtering non-speech background noise.
     """
-    def __init__(self, model_name="silero_vad", samplerate=16000, device="cpu", logger_name="vaultwares.vad"):
+    def __init__(self, model_name="silero_vad", samplerate=16000, device="cpu", logger_name="vaultwares.vad", bypass=False):
         self.model_name = model_name
         self.samplerate = samplerate
         self.device = torch.device(device)
         self.logger = logging.getLogger(logger_name)
         self.model = None
         self.utils = None
-        self._initialize_model()
+        self.bypass = bypass
+        if not self.bypass:
+            self._initialize_model()
 
     def _initialize_model(self):
         """Loads the Silero VAD model via torch.hub. Tries CPU, falls back to CUDA."""

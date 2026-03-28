@@ -33,6 +33,7 @@ class TransparentOverlay(QMainWindow):
         self.outline_color = "#000000" # Black
         self.subtitle_bg_color = "rgba(0, 0, 0, 128)" # Default semi-transparent black
         self.show_subtitle_bg = True
+        self.skip_vad = False
         
         self._dragging = False
         self._drag_pos = QPoint()
@@ -113,9 +114,20 @@ class TransparentOverlay(QMainWindow):
         self.bg_checkbox.toggled.connect(self._on_bg_toggled)
         self.control_layout.addWidget(self.bg_checkbox, 0, 2)
 
-        self.debug_checkbox = QCheckBox("Debug Logs")
+        self.skip_vad_checkbox = QCheckBox("Skip VAD")
+        self.skip_vad_checkbox.setChecked(self.skip_vad)
+        self.skip_vad_checkbox.setToolTip("Disable voice activity detection for lower latency (higher GPU/CPU cost)")
+        self.skip_vad_checkbox.toggled.connect(self._on_skip_vad_toggled)
+        self.control_layout.addWidget(self.skip_vad_checkbox, 0, 3)
+
+        self.engine_combo = QComboBox()
+        self.engine_combo.addItems(["Whisper", "NVIDIA (Parakeet)"])
+        self.engine_combo.currentIndexChanged.connect(self._on_engine_changed)
+        self.control_layout.addWidget(self.engine_combo, 0, 4)
+
+        self.debug_checkbox = QCheckBox("Debug")
         self.debug_checkbox.stateChanged.connect(self._on_debug_toggled)
-        self.control_layout.addWidget(self.debug_checkbox, 0, 3)
+        self.control_layout.addWidget(self.debug_checkbox, 0, 5)
 
         # Row 1-2: Consolidated Font/Style (Word Style)
         self.control_layout.addWidget(QLabel("Font:"), 1, 0)
@@ -418,6 +430,14 @@ class TransparentOverlay(QMainWindow):
 
     def _on_debug_toggled(self, state):
         self.debug_toggle_signal.emit(state == Qt.CheckState.Checked.value)
+
+    def _on_skip_vad_toggled(self, checked):
+        self.skip_vad = checked
+        self.settings_changed_signal.emit({"skip_vad": checked})
+
+    def _on_engine_changed(self, index):
+        engine = "whisper" if index == 0 else "nvidia"
+        self.settings_changed_signal.emit({"active_engine": engine})
 
     def _on_bg_toggled(self, checked):
         self.show_subtitle_bg = checked

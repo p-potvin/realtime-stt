@@ -16,6 +16,7 @@ from PySide6.QtCore import Signal, QObject
 from stt_engine.audio_capture import AudioRecorder
 from stt_engine.vad_logic import SileroVADWrapper
 from stt_engine.faster_whisper_wrapper import FasterWhisperWrapper
+from stt_engine.parakeet_wrapper import ParakeetV3Wrapper
 from gui_overlay.overlay_window import TransparentOverlay
 
 # Configure root logger for the application
@@ -38,25 +39,24 @@ class RealTimeSTTApp:
         self.correlation_id = "c" + "".join(random.choices(string.ascii_lowercase + string.digits, k=6))
         self.logger = logging.getLogger("vaultwares.main")
         self.logger.info(f"Starting realtime-stt app (CorrelationId: {self.correlation_id})")
+        
         self.language = language
         self.theme_idx = theme_idx
+        self.device = device
+        self.active_engine = "whisper" # Default
+        self.skip_vad = False
         
-        # Initialize Core components with VaultWares standard logging
-        # Silero VAD is optimized for CPU - but in case:
-        # attempt CUDA, fall back to CPU if needed (handled in wrapper)
+        # Pre-initialize Core components
         self.vad = SileroVADWrapper(device="cpu" if device == "cpu" else "cuda")
-        
-        # Faster-Whisper on RTX 3060 CUDA by default, fallback handled inside get_model()
         self.stt = FasterWhisperWrapper(
             model_size=model_size, 
             device=device,
             compute_type="float16" if device == "cuda" else "int8"
         )
-        self.stt.get_model()  # Preload model to reduce first inference latency
+        self.stt.get_model()
         
-        # Audio capturing at 16kHz Mono
-        # Silero VAD requires specific chunk sizes (512 samples at 16kHz or 256 at 8kHz)
-        # We'll use 512 samples (~32ms) to minimize latency and satisfy VAD requirements
+        # Parakeet V3 (NVIDIA) engine - initialized on demand or at start
+        self.parakeet = ParakeetV3Wrapper(model_name="nvidia/canary-1b")
         
         # Determine the correct device index for VB-Audio Virtual Cable
         # Based on user input, we need to listen to the virtual output cable.
@@ -101,8 +101,11 @@ class RealTimeSTTApp:
             if chunk is None:
                 continue
             
-            # Normalize chunk (SoundDevice already returns float32 generally)
-            speech_prob = self.vad.get_speech_prob(chunk)
+            # VAD logic
+            if self.skip_vad:
+                speech_prob = 1.0 # Always on
+            else:
+                speech_prob = self.vad.get_speech_prob(chunk)
             
             if speech_prob >= 0.4:
                 self.speech_buffer.append(chunk)
@@ -139,31 +142,54 @@ class RealTimeSTTApp:
             self.thread.join(timeout=0)
 
     def _request_transcription(self):
-        """Combines buffer and runs Whisper transcription."""
+        """Combines buffer and runs the active STT engine."""
         if not self.speech_buffer:
             return
             
         try:
             full_audio = np.concatenate(self.speech_buffer)            
 
-            # Use the specialized chunk method for speed, pass language
-            # Faster-Whisper's model.transcribe handles language
-            segments, info = self.stt.transcribe(
-                full_audio,
-                beam_size=1,
-                vad_filter=False,  # Already filtered by our VAD
-                language=self.language,
-                word_timestamps=False
-            )
-            
-            text = "".join([s.text for s in segments]).strip()
+            if self.active_engine == "nvidia":
+                # Ray-based Parakeet / Canary (v3 / v2)
+                text = self.parakeet.transcribe(full_audio)
+            else:
+                # Faster-Whisper
+                # Use the specialized chunk method for speed, pass language
+                # Faster-Whisper's model.transcribe handles language
+                segments, info = self.stt.transcribe(
+                    full_audio,
+                    beam_size=1,
+                    vad_filter=False,  # Already filtered by our VAD
+                    language=self.language,
+                    word_timestamps=False
+                )
+                text = "".join([s.text for s in segments]).strip()
             
             if text and len(text.strip()) > 1:
-                self.logger.info(f"Transcription ({self.language}): {text}")
+                self.logger.info(f"Transcription ({self.language}) [{self.active_engine}]: {text}")
                 self.bridge.update_caption_signal.emit(text)
         except Exception as e:
             self.logger.error(f"Transcription error: {e}")
 
+    def _toggle_debug_logs(self, state):
+        """Toggles logging level (INFO/DEBUG)"""
+        if state:
+            logging.getLogger().setLevel(logging.DEBUG)
+            self.logger.debug("Debug logs enabled.")
+        else:
+            logging.getLogger().setLevel(logging.INFO)
+            self.logger.info("Debug logs disabled.")
+
+    def on_settings_changed(self, settings_dict: dict):
+        """Callback for GUI settings changes."""
+        if "skip_vad" in settings_dict:
+            self.skip_vad = settings_dict["skip_vad"]
+            self.logger.info(f"VAD Bypass set to: {self.skip_vad}")
+        
+        if "active_engine" in settings_dict:
+            self.active_engine = settings_dict["active_engine"]
+            self.logger.info(f"Active engine changed to: {self.active_engine}")
+    
     def run(self):
         """Initializes GUI, Audio and starts processing thread."""
         app = QApplication(sys.argv)
@@ -175,6 +201,7 @@ class RealTimeSTTApp:
         # Connect signals
         self.bridge.update_caption_signal.connect(self.overlay.update_caption)
         self.overlay.debug_toggle_signal.connect(self._toggle_debug_logs)
+        self.overlay.settings_changed_signal.connect(self.on_settings_changed)
         self.overlay.exit_requested_signal.connect(app.quit)
         
         self.is_running = True
