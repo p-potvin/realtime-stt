@@ -72,7 +72,18 @@ class SileroVADWrapper:
             
             # Forward pass through the model
             with torch.no_grad():
-                speech_prob = self.model(audio_tensor, self.samplerate).item()                
+                # Silero VAD expects normalized audio. 
+                # IMPORTANT: Since we now apply a 2.5x base boost in audio_capture.py,
+                # we adjust the VAD-internal boost threshold here to maintain sensitivity.
+                peak = torch.max(torch.abs(audio_tensor)).item()
+                vad_input = audio_tensor.clone() 
+                if 0 < peak < 0.25:
+                    # Scale based on the distance to a healthy peak (approx 0.8 to 1.0)
+                    scale = 0.95 / (peak + 1e-6)
+                    vad_input = vad_input * scale
+                    self.logger.debug(f"Input boosted for VAD-only (Peak: {peak:.4f} -> 0.95)")
+                
+                speech_prob = self.model(vad_input, self.samplerate).item()                
             
             self.logger.debug(f"Speech probability: {speech_prob:.4f}")
             return speech_prob

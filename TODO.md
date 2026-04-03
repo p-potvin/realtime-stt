@@ -8,5 +8,8 @@
 - [x] VaultWares Theme Management (9 specific color combinations).
 - [x] Dynamic Debugging Controls (Global Log Level Toggle).
 - [x] CLI & GUI Target Language support (default: 'en').
-- [ ] VoiceMeeter / Audio Routing Verification (Depends on environment).
-- [ ] Multi-segment handling optimization.
+- [x] Integrate NVIDIA Parakeet STT as default engine.
+- [x] Configure JSON system settings persistence (`config.json`).
+- [x] Background Tray Icon & decoupled transparent overlay.
+- [x] WASAPI loopback support out-of-the-box (via `soundcard`).
+- [x] Multi-segment handling optimization (Near real-time algorithms, VAD slicing).

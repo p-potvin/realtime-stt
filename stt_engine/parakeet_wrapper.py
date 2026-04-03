@@ -2,17 +2,25 @@ import os
 import torch
 import numpy as np
 import logging
-import ray
+import subprocess
 from typing import Optional
+
+# Monkey-patch subprocess.Popen to NEVER open a console window on Windows
+if os.name == 'nt':
+    _original_popen = subprocess.Popen
+    class _HushPopen(_original_popen):
+        def __init__(self, *args, **kwargs):
+            if 'creationflags' not in kwargs:
+                kwargs['creationflags'] = subprocess.CREATE_NO_WINDOW | getattr(subprocess, 'DETACHED_PROCESS', 0x00000008)
+            super().__init__(*args, **kwargs)
+    subprocess.Popen = _HushPopen
 
 # Check for CUDA availability
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-@ray.remote(num_gpus=1 if DEVICE == "cuda" else 0)
 class ParakeetWorker:
     """
-    Dedicated Ray worker for running NVIDIA Parakeet V3 / Canary V2 models.
-    Operates in a separate process to bypass GIL and maximize CUDA throughput.
+    Dedicated worker for running NVIDIA Parakeet V3 / Canary V2 models.
     """
     def __init__(self, model_name: str = "nvidia/canary-1b"):
         import nemo.collections.asr as nemo_asr
@@ -78,23 +86,18 @@ class ParakeetWorker:
 
 class ParakeetV3Wrapper:
     """
-    Main interface for the application to interact with Parakeet via Ray.
+    Main interface for the application to interact with Parakeet natively (no Ray).
     """
     def __init__(self, model_name: str = "nvidia/canary-1b"):
-        if not ray.is_initialized():
-            ray.init(dashboard_host="127.0.0.1")
-        
-        self.worker = ParakeetWorker.remote(model_name=model_name)
+        # Load worker directly into current thread
+        self.worker = ParakeetWorker(model_name=model_name)
         self.logger = logging.getLogger("vaultwares.parakeet_wrapper")
 
     def transcribe(self, audio_data: np.ndarray, source_lang: str = "en", target_lang: str = "en") -> str:
         """
-        Asynchronously dispatch transcription to the Ray worker.
+        Synchronous dispatch transcription to the worker.
         """
-        # We use ray.get to make it synchronous for the orchestrator, 
-        # but the actual work happens in a separate process.
-        future = self.worker.transcribe.remote(audio_data, source_lang, target_lang)
-        return ray.get(future)
+        return self.worker.transcribe(audio_data, source_lang, target_lang)
 
     def shutdown(self):
-        ray.shutdown()
+        pass

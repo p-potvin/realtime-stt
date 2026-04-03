@@ -1,0 +1,15 @@
+{
+    "theme_idx": 6,
+    "font_family": "Segoe UI",
+    "font_size": 12,
+    "font_weight": 400,
+    "font_italic": false,
+    "font_underline": false,
+    "text_color": "#00aa00",
+    "outline_color": "#55aaff",
+    "outline_width": 30,
+    "show_subtitle_bg": true,
+    "skip_vad": false,
+    "subtitles_visible": true,
+    "active_engine": "Parakeet"
+}

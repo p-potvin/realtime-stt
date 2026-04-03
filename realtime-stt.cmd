@@ -18,7 +18,6 @@ call "%VENV_DIR%\Scripts\activate"
 echo Verifying dependencies...
 pip install -r "%~dp0requirements.txt" --quiet
 
-echo Starting Real-Time STT...
-python "%APP_MAIN%" --model small --device cpu --lang en --theme 2 %*
+echo Starting Real-Time STT in background...
+start "" pythonw "%APP_MAIN%" --model small --device cpu --lang en --theme 2 %*
 
-pause

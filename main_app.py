@@ -1,30 +1,55 @@
 import sys
+import os
+import time
 import threading
 import numpy as np
 import logging
 import random
 import string
 import argparse
+import subprocess
+from win10toast import ToastNotifier
+
+# Monkey-patch subprocess.Popen globally to prevent any random command-line popups on Windows
+if sys.platform == 'win32':
+    _original_popen = subprocess.Popen
+    class _HushPopen(_original_popen):
+        def __init__(self, *args, **kwargs):
+            if 'creationflags' not in kwargs:
+                kwargs['creationflags'] = subprocess.CREATE_NO_WINDOW
+            super().__init__(*args, **kwargs)
+    subprocess.Popen = _HushPopen
+
 import vault_sync
 import soundfile as sf
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
+from PySide6.QtGui import QIcon, QPixmap, QColor, QPainter
+from PySide6.QtCore import Signal, QObject
 
 # Run vault synchronization at startup
 vault_sync.sync_vault_dependencies()
+# (Re-enabled after verification)
 
-from PySide6.QtCore import Signal, QObject
 from stt_engine.audio_capture import AudioRecorder
 from stt_engine.vad_logic import SileroVADWrapper
 from stt_engine.faster_whisper_wrapper import FasterWhisperWrapper
 from stt_engine.parakeet_wrapper import ParakeetV3Wrapper
-from gui_overlay.overlay_window import TransparentOverlay
+from gui_overlay.overlay_window import SubtitleWindow, SettingsWindow
 
 # Configure root logger for the application
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s [%(levelname)s] [%(name)s] %(message)s',
-    stream=sys.stdout
-)
+log_formatter = logging.Formatter('%(asctime)s [%(levelname)s] [%(name)s] %(message)s')
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.DEBUG)
+
+# Create a file handler so debug logs can be seen even with pythonw
+file_handler = logging.FileHandler("realtime_stt.log", mode="w", encoding="utf-8")
+file_handler.setFormatter(log_formatter)
+root_logger.addHandler(file_handler)
+
+# Create a stream handler for CLI runs
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setFormatter(log_formatter)
+root_logger.addHandler(console_handler)
 
 class CommunicationBridge(QObject):
     """Bridge for cross-thread signals to the PySide6 UI."""
@@ -43,45 +68,41 @@ class RealTimeSTTApp:
         self.language = language
         self.theme_idx = theme_idx
         self.device = device
-        self.active_engine = "whisper" # Default
+        self.active_engine = "nvidia" # Default to Parakeet
         self.skip_vad = False
+        self.last_settings_version = -1
+        self.toaster = ToastNotifier()
         
-        # Pre-initialize Core components
-        self.vad = SileroVADWrapper(device="cpu" if device == "cpu" else "cuda")
-        self.stt = FasterWhisperWrapper(
-            model_size=model_size, 
-            device=device,
-            compute_type="float16" if device == "cuda" else "int8"
-        )
-        self.stt.get_model()
+        # Core components (Lazy initialized to speed up startup)
+        self.vad = None
         
-        # Parakeet V3 (NVIDIA) engine - initialized on demand or at start
-        self.parakeet = ParakeetV3Wrapper(model_name="nvidia/canary-1b")
+        self.ENGINE_NVIDIA = "nvidia"
+        self.ENGINE_WHISPER = "whisper"
         
-        # Determine the correct device index for VB-Audio Virtual Cable
-        # Based on user input, we need to listen to the virtual output cable.
-        device_index = None
-        try:
-            import sounddevice as sd
-            devices = sd.query_devices()
-            for i, dev in enumerate(devices):
-                # We look for "CABLE Output" which is the recording end of the virtual cable
-                if "CABLE Output" in dev['name'] and dev['max_input_channels'] > 0:
-                    device_index = i
-                    self.logger.info(f"Automatically selected VB-Audio device: {dev['name']} (Index: {i})")
-                    break
-        except Exception as e:
-            self.logger.warning(f"Could not auto-detect audio device: {e}")
-
-        self.recorder = AudioRecorder(device_index=device_index, samplerate=16000, blocksize=512)
+        # We will hold the active STT engine wrapper in this single property
+        self.sttEngine = None
+        
+        # We will use soundcard's default speaker loopback
+        self.recorder = AudioRecorder(device_name=None, samplerate=16000, blocksize=512)
         
         self.is_running = False
+        self.is_processing = True # Toggle to pause audio processing when subtitles hidden
         self.speech_buffer = []
+        
+        self.transcription_queue = []
+        self.transcription_lock = threading.Lock()
+        self.transcription_queue_threshold = 2 # If more than 2 chunks are waiting, it falls behind
+        
+        self.simulate_lag = False # Internal testing flag
+        
         self.bridge = CommunicationBridge()
         
-        # Sliding window parameters
-        self.max_buffer_size = 15  # ~3 seconds of audio (90 * 32ms chunks)
-        self.min_speech_trigger = 15 # ~2 second minimum to attempt transcription
+        # Sliding window parameters optimized for near real-time
+        self.max_buffer_size = 20  # ~640ms of audio (20 * 32ms chunks) for better context
+        self.min_speech_trigger = 5 # ~160ms minimum to attempt transcription (prevents dropping "Yes/No")
+    def _set_simulate_lag(self, state):
+        self.simulate_lag = state
+        self.logger.info(f"Simulate STT Lag enabled: {state}")
 
     def processing_loop(self):
         """
@@ -97,42 +118,71 @@ class RealTimeSTTApp:
         max_silence_chunks = 0.5 * self.max_buffer_size # ~1.0 seconds of silence to flush buffer
         
         while self.is_running:
-            chunk = self.recorder.get_chunk(timeout=0)
+            if not self.is_processing:
+                time.sleep(0.5)
+                continue
+                
+            chunk = self.recorder.get_chunk(timeout=0.1)
             if chunk is None:
+                # self.logger.debug("No chunk from recorder") # Too noisy even for debug
                 continue
             
+            # Diagnostic: Log every 100 chunks pulled to main app
+            if not hasattr(self, '_proc_counter'): self._proc_counter = 0
+            self._proc_counter += 1
+            if self._proc_counter % 100 == 0:
+                self.logger.info(f"Processing Loop: Pulled chunk {self._proc_counter} from queue.")
+
             # VAD logic
             if self.skip_vad:
                 speech_prob = 1.0 # Always on
             else:
+                if self.vad is None:
+                    self.logger.info("Initializing VAD (Lazy Load)...")
+                    self.vad = SileroVADWrapper(device="cpu" if self.device == "cpu" else "cuda")
                 speech_prob = self.vad.get_speech_prob(chunk)
             
-            if speech_prob >= 0.4:
+            # Periodically log the probability to help tune sensitivity
+            # Increased logging frequency during troubleshooting
+            if self._proc_counter % 20 == 0:
+                peak_val = np.max(np.abs(chunk))
+                self.logger.info(f"VAD Check - Prob: {speech_prob:.4f} (Threshold: 0.15) | Peak: {peak_val:.4f} | Buffer: {len(self.speech_buffer)}")
+
+            if speech_prob >= 0.15: # Lowered further for 'Tray-Quietness' support
+                if not self.speech_buffer:
+                    self.logger.info(f"Speech Activity Detected (Prob: {speech_prob:.4f}) - Starting buffer accumulation.")
                 self.speech_buffer.append(chunk)
                 silence_counter = 0
                 
                 # If we've accumulated significant speech, perform partial transcription
                 if len(self.speech_buffer) >= self.max_buffer_size:
-                    self._request_transcription()
+                    # Only queue if the buffer actually has data (safety check for 'empty chunk' bug)
+                    if self.speech_buffer:
+                        self._queue_transcription(np.concatenate(self.speech_buffer))
                     # Slide the window (keep 32 ms overlap for context)
                     self.speech_buffer = self.speech_buffer[-1:]
-                    #self.vad.model.reset_states()  # Reset internal states for next chunk
             else:
                 silence_counter += 1
                 if silence_counter >= max_silence_chunks and self.speech_buffer:
                     # Minimum trigger check here to prevent tiny ghost audio
                     if len(self.speech_buffer) >= self.min_speech_trigger:
-                        self._request_transcription()
+                        # Only queue if the buffer actually has data
+                        if self.speech_buffer:
+                            self._queue_transcription(np.concatenate(self.speech_buffer))
                     self.speech_buffer = []
-                    #self.vad.model.reset_states()  # Reset internal states for next chunk
 
     def start(self):
         """Starts the capture and processing threads."""
-        self.is_running = True
-        self.recorder.start_recording()       
+        if self.is_running:
+            return
+        
+        self.recorder.start_recording()
         
         self.thread = threading.Thread(target=self.processing_loop, daemon=True)
         self.thread.start()
+        
+        self.transcription_thread = threading.Thread(target=self.transcription_loop, daemon=True)
+        self.transcription_thread.start()
 
     def stop(self):
         """Stops the app and cleans up."""
@@ -140,28 +190,101 @@ class RealTimeSTTApp:
         self.recorder.stop_recording()
         if hasattr(self, 'thread'):
             self.thread.join(timeout=0)
+        if hasattr(self, 'transcription_thread'):
+            self.transcription_thread.join(timeout=0)
 
-    def _request_transcription(self):
-        """Combines buffer and runs the active STT engine."""
-        if not self.speech_buffer:
-            return
-            
-        try:
-            full_audio = np.concatenate(self.speech_buffer)            
+    def _queue_transcription(self, audio_data):
+        """Pushes an audio block to the transcription queue."""
+        self.logger.info(f"Queueing transcription chunk (Size: {len(audio_data)} samples)")
+        with self.transcription_lock:
+            self.transcription_queue.append(audio_data)
 
-            if self.active_engine == "nvidia":
-                # Ray-based Parakeet / Canary (v3 / v2)
-                text = self.parakeet.transcribe(full_audio)
+    def transcription_loop(self):
+        """
+        Background worker that processes accumulated audio blocks.
+        Implements the heap/queue hybrid strategy.
+        """
+        while self.is_running:
+            audio_payload = None
+            with self.transcription_lock:
+                q_size = len(self.transcription_queue)
+                if q_size > 0:
+                    if q_size > self.transcription_queue_threshold:
+                        # Too much backlog! Switch to Stack/LIFO for exactly 1 chunk
+                        self.logger.warning(f"Queue threshold ({self.transcription_queue_threshold}) exceeded! Switching to LIFO for most recent subtitles.")
+                        audio_payload = self.transcription_queue.pop(-1)
+                        # Flush the buffer for all old tasks
+                        self.transcription_queue.clear()
+                    else:
+                        # Normal Queue/FIFO
+                        audio_payload = self.transcription_queue.pop(0)
+                        
+            if audio_payload is not None:
+                self._run_stt(audio_payload)
             else:
-                # Faster-Whisper
+                time.sleep(0.05)
+
+    def _run_stt(self, full_audio):
+        """Combines buffer and runs the active STT engine."""
+        try:
+            # Create the log directory if it doesn't exist
+            log_dir = os.path.join(os.getcwd(), "audio_logs")
+            if not os.path.exists(log_dir):
+                os.makedirs(log_dir)
+
+            # Generate a unique filename based on timestamp
+            timestamp = time.strftime("%Y%m%d-%H%M%S")
+            audio_id = "".join(random.choices(string.ascii_lowercase + string.digits, k=4))
+            audio_path = os.path.join(log_dir, f"transcription_{timestamp}_{audio_id}.mp3")
+
+            # Save the audio as MP3 for review
+            try:
+                from pydub import AudioSegment
+                # Convert float32 numpy to 16-bit PCM for pydub (standard STT audio)
+                int_audio = (full_audio * 32767).astype(np.int16)
+                segment = AudioSegment(
+                    int_audio.tobytes(), 
+                    frame_rate=16000, 
+                    sample_width=2, 
+                    channels=1
+                )
+                segment.export(audio_path, format="mp3")
+                self.logger.debug(f"Saved audio segment for review: {audio_path}")
+            except Exception as e:
+                self.logger.warning(f"Failed to export audio log: {e}. Ensure FFmpeg is in PATH for MP3.")
+
+            if self.simulate_lag:
+                time.sleep(3.0) # Introduce artificial 3 second latency for testing
+
+            text = ""
+            if self.active_engine == self.ENGINE_NVIDIA:
+                # Lazy initialization for Parakeet
+                if not isinstance(self.sttEngine, ParakeetV3Wrapper):
+                    self.logger.info("Initializing Parakeet Engine...")
+                    self.sttEngine = ParakeetV3Wrapper(model_name="nvidia/canary-1b")
+                
+                text = self.sttEngine.transcribe(full_audio)
+            else:
+                # Lazy initialization for Faster-Whisper
+                if not isinstance(self.sttEngine, FasterWhisperWrapper):
+                    self.logger.info("Initializing Faster-Whisper Engine...")
+                    self.sttEngine = FasterWhisperWrapper(
+                        model_size="medium",
+                        device=self.device,
+                        compute_type="float16" if self.device == "cuda" else "int8"
+                    )
+                    self.sttEngine.get_model()
+
                 # Use the specialized chunk method for speed, pass language
                 # Faster-Whisper's model.transcribe handles language
-                segments, info = self.stt.transcribe(
+                segments, info = self.sttEngine.transcribe(
                     full_audio,
                     beam_size=1,
                     vad_filter=False,  # Already filtered by our VAD
                     language=self.language,
-                    word_timestamps=False
+                    word_timestamps=False,
+                    condition_on_previous_text=False, # Crucial for real-time speed to prevent context hallucinations
+                    initial_prompt=""
                 )
                 text = "".join([s.text for s in segments]).strip()
             
@@ -173,15 +296,32 @@ class RealTimeSTTApp:
 
     def _toggle_debug_logs(self, state):
         """Toggles logging level (INFO/DEBUG)"""
-        if state:
-            logging.getLogger().setLevel(logging.DEBUG)
-            self.logger.debug("Debug logs enabled.")
-        else:
-            logging.getLogger().setLevel(logging.INFO)
-            self.logger.info("Debug logs disabled.")
+        level = logging.DEBUG if state else logging.INFO
+        
+        # Update root logger so handlers pick it up
+        logging.getLogger().setLevel(level)
+        
+        # Update app-level logger
+        logging.getLogger("vaultwares").setLevel(level)
+        
+        # Explicitly update sub-loggers
+        if self.vad:
+            self.vad.logger.setLevel(level)
+        self.recorder.logger.setLevel(level)
+        
+        if self.sttEngine and hasattr(self.sttEngine, 'logger'):
+            self.sttEngine.logger.setLevel(level)
+            
+        self.logger.info(f"Global Debug Logging: {'ENABLED' if state else 'DISABLED'}")
 
     def on_settings_changed(self, settings_dict: dict):
         """Callback for GUI settings changes."""
+        # Fix for loop: Check version flag instead of whole object
+        new_version = settings_dict.get("version", 0)
+        if getattr(self, 'last_settings_version', -1) == new_version:
+            return
+        self.last_settings_version = new_version
+
         if "skip_vad" in settings_dict:
             self.skip_vad = settings_dict["skip_vad"]
             self.logger.info(f"VAD Bypass set to: {self.skip_vad}")
@@ -189,31 +329,87 @@ class RealTimeSTTApp:
         if "active_engine" in settings_dict:
             self.active_engine = settings_dict["active_engine"]
             self.logger.info(f"Active engine changed to: {self.active_engine}")
+            
+        if "is_visible" in settings_dict:
+            visible = settings_dict["is_visible"]
+            self.is_processing = visible
+            if visible:
+                self.subtitle_window.show()
+                # If we paused recording, start it again
+                if not self.recorder.is_recording:
+                    self.recorder.start_recording()
+            else:
+                self.subtitle_window.hide()
+                # Stop recording when subtitles are hidden to save resources
+                self.recorder.stop_recording()
+                
+        # Forward style changes to the subtitle window
+        if hasattr(self, 'subtitle_window'):
+            self.subtitle_window.apply_styles(settings_dict)
+
+    def create_tray_icon(self):
+        """Creates a simple colored icon for the tray"""
+        pixmap = QPixmap(32, 32)
+        pixmap.fill(QColor("transparent"))
+        painter = QPainter(pixmap)
+        painter.setBrush(QColor("#00FFCC")) # Cyberpunk accent
+        painter.drawEllipse(2, 2, 28, 28)
+        painter.end()
+        return QIcon(pixmap)
     
     def run(self):
         """Initializes GUI, Audio and starts processing thread."""
+        self.toaster.show_toast(
+            "VaultWares STT",
+            "Initializing models and audio drivers. Please wait...",
+            duration=5,
+            threaded=True
+        )
         app = QApplication(sys.argv)
+        app.setQuitOnLastWindowClosed(False) # Keep running when settings closed
         
-        # Create and show the overlay with initial theme
-        self.overlay = TransparentOverlay(theme_idx=self.theme_idx)
-        self.overlay.show()
+        self.settings_window = SettingsWindow(theme_idx=self.theme_idx)
+        self.subtitle_window = SubtitleWindow()
         
-        # Connect signals
-        self.bridge.update_caption_signal.connect(self.overlay.update_caption)
-        self.overlay.debug_toggle_signal.connect(self._toggle_debug_logs)
-        self.overlay.settings_changed_signal.connect(self.on_settings_changed)
-        self.overlay.exit_requested_signal.connect(app.quit)
+        # Connect signals FIRST so initialization emits are caught, though SettingsWindow already emited in init.
+        self.bridge.update_caption_signal.connect(self.subtitle_window.update_caption)
+        self.settings_window.debug_toggle_signal.connect(self._toggle_debug_logs)
+        self.settings_window.simulate_lag_signal.connect(self._set_simulate_lag)
+        self.settings_window.settings_changed_signal.connect(self.on_settings_changed)
+        
+        # Explicitly apply the loaded settings once
+        self.on_settings_changed(self.settings_window.get_current_settings())
+        
+        # Tray Icon Setup
+        self.tray_icon = QSystemTrayIcon(self.create_tray_icon(), app)
+        self.tray_icon.setToolTip("VaultWares Real-Time STT")
+        
+        tray_menu = QMenu()
+        settings_action = tray_menu.addAction("Settings")
+        settings_action.triggered.connect(self.settings_window.showNormal)
+        quit_action = tray_menu.addAction("Exit")
+        quit_action.triggered.connect(app.quit)
+        self.tray_icon.setContextMenu(tray_menu)
+        self.tray_icon.show()
+        
+        self.tray_icon.activated.connect(
+            lambda reason: self.settings_window.showNormal() if reason == QSystemTrayIcon.ActivationReason.DoubleClick else None
+        )
+        
+        # Initial display
+        self.settings_window.show()
+        if self.settings_window.subtitles_visible:
+            self.subtitle_window.show()
+        else:
+            self.subtitle_window.hide()
         
         self.is_running = True
-        
+
         # Start Threads
-        self.recorder.start_recording()
-        
-        worker_thread = threading.Thread(target=self.processing_loop, daemon=True)
-        worker_thread.start()
-        
+        self.start()
+
         self.logger.info(f"Application running. Target Language: {self.language}")
-        self.logger.info("Press Ctrl+C in this terminal or use 'EXIT PLAYER' in the GUI to close.")
+        self.logger.info("Tray icon active. Press Ctrl+C in terminal or exit from tray to close.")
         
         try:
             sys.exit(app.exec())
@@ -223,20 +419,6 @@ class RealTimeSTTApp:
             self.logger.info("Exiting application...")
             self.is_running = False
             self.recorder.stop_recording()
-
-    def _toggle_debug_logs(self, enabled):
-        """Toggles logging levels across all components."""
-        level = logging.DEBUG if enabled else logging.INFO
-        
-        # Update app-level logger
-        logging.getLogger("vaultwares").setLevel(level)
-        
-        # Explicitly update sub-loggers
-        self.vad.logger.setLevel(level)
-        self.stt.logger.setLevel(level)
-        self.recorder.logger.setLevel(level)
-        
-        self.logger.info(f"Global Debug Logging: {'ENABLED' if enabled else 'DISABLED'}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="VaultWares Real-Time STT")

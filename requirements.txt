@@ -6,4 +6,6 @@ pydub
 pyside6
 soundfile
 sounddevice
+soundcard
+numpy<2.0.0
 hf_xet
