@@ -55,14 +55,13 @@ class AudioRecorder:
                     if not hasattr(self, '_log_counter'): self._log_counter = 0
                     self._log_counter += 1
                     
-                    # Software Gain: If the signal is consistently quiet (due to Windows background throttling)
-                    # we apply a slight boost here to ensure the VAD and STT get a healthy signal.
+                    # Software gain: boost genuinely quiet (but non-silent) signals to give VAD
+                    # and STT a healthy amplitude. The lower bound (0.005) prevents the hardware
+                    # noise floor from being amplified; the upper bound (0.15) avoids clipping
+                    # audio that is already reasonably loud.
                     peak = np.max(np.abs(mono_data))
-                    if 0 < peak < 0.2:
-                        # Apply a 2x boost (approx 6dB) to compensate for potential OS attenuation
-                        # This is a safe baseline boost for loopback.
+                    if 0.005 <= peak < 0.15:
                         mono_data = mono_data * 2.5
-                        # Re-calculate peak for debugging
                         peak = np.max(np.abs(mono_data))
 
                     if self._log_counter % 100 == 0:

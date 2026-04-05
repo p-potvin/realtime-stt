@@ -88,7 +88,8 @@ class RealTimeSTTApp:
         self.is_running = False
         self.is_processing = True # Toggle to pause audio processing when subtitles hidden
         self.speech_buffer = []
-        
+        self._proc_counter = 0
+
         self.transcription_queue = []
         self.transcription_lock = threading.Lock()
         self.transcription_queue_threshold = 2 # If more than 2 chunks are waiting, it falls behind
@@ -100,6 +101,7 @@ class RealTimeSTTApp:
         # Sliding window parameters optimized for near real-time
         self.max_buffer_size = 20  # ~640ms of audio (20 * 32ms chunks) for better context
         self.min_speech_trigger = 5 # ~160ms minimum to attempt transcription (prevents dropping "Yes/No")
+
     def _set_simulate_lag(self, state):
         self.simulate_lag = state
         self.logger.info(f"Simulate STT Lag enabled: {state}")
@@ -109,67 +111,68 @@ class RealTimeSTTApp:
         Refined processing thread:
         1. Pulls chunks (32ms / 512 samples) from recorder.
         2. Filters using VAD.
-        3. Accumulates speech chunks.
+        3. Accumulates speech chunks (including intra-speech silence) into a sliding window.
         4. Transcribes and emits window signals.
         """
         self.logger.info("Processing loop started.")
-        
+        self._proc_counter = 0
+
         silence_counter = 0
-        max_silence_chunks = 0.5 * self.max_buffer_size # ~1.0 seconds of silence to flush buffer
-        
+        # ~320 ms of consecutive silence needed to flush the buffer (10 × 32 ms chunks)
+        max_silence_chunks = int(0.5 * self.max_buffer_size)
+
         while self.is_running:
             if not self.is_processing:
                 time.sleep(0.5)
                 continue
-                
+
             chunk = self.recorder.get_chunk(timeout=0.1)
             if chunk is None:
-                # self.logger.debug("No chunk from recorder") # Too noisy even for debug
                 continue
-            
-            # Diagnostic: Log every 100 chunks pulled to main app
-            if not hasattr(self, '_proc_counter'): self._proc_counter = 0
+
             self._proc_counter += 1
             if self._proc_counter % 100 == 0:
                 self.logger.info(f"Processing Loop: Pulled chunk {self._proc_counter} from queue.")
 
             # VAD logic
             if self.skip_vad:
-                speech_prob = 1.0 # Always on
+                speech_prob = 1.0
             else:
                 if self.vad is None:
                     self.logger.info("Initializing VAD (Lazy Load)...")
                     self.vad = SileroVADWrapper(device="cpu" if self.device == "cpu" else "cuda")
                 speech_prob = self.vad.get_speech_prob(chunk)
-            
-            # Periodically log the probability to help tune sensitivity
-            # Increased logging frequency during troubleshooting
+
             if self._proc_counter % 20 == 0:
                 peak_val = np.max(np.abs(chunk))
                 self.logger.info(f"VAD Check - Prob: {speech_prob:.4f} (Threshold: 0.15) | Peak: {peak_val:.4f} | Buffer: {len(self.speech_buffer)}")
 
-            if speech_prob >= 0.15: # Lowered further for 'Tray-Quietness' support
-                if not self.speech_buffer:
+            is_in_speech = bool(self.speech_buffer)
+
+            if speech_prob >= 0.15:
+                if not is_in_speech:
                     self.logger.info(f"Speech Activity Detected (Prob: {speech_prob:.4f}) - Starting buffer accumulation.")
                 self.speech_buffer.append(chunk)
                 silence_counter = 0
-                
-                # If we've accumulated significant speech, perform partial transcription
+
                 if len(self.speech_buffer) >= self.max_buffer_size:
-                    # Only queue if the buffer actually has data (safety check for 'empty chunk' bug)
-                    if self.speech_buffer:
-                        self._queue_transcription(np.concatenate(self.speech_buffer))
-                    # Slide the window (keep 32 ms overlap for context)
+                    self._queue_transcription(np.concatenate(self.speech_buffer))
+                    # Keep 1-chunk overlap for context continuity
                     self.speech_buffer = self.speech_buffer[-1:]
             else:
+                # Once speech has started, keep buffering even during brief pauses so that
+                # natural word gaps don't fragment the audio fed to the STT model.
+                if is_in_speech:
+                    self.speech_buffer.append(chunk)
+
                 silence_counter += 1
-                if silence_counter >= max_silence_chunks and self.speech_buffer:
-                    # Minimum trigger check here to prevent tiny ghost audio
-                    if len(self.speech_buffer) >= self.min_speech_trigger:
-                        # Only queue if the buffer actually has data
-                        if self.speech_buffer:
-                            self._queue_transcription(np.concatenate(self.speech_buffer))
+
+                if silence_counter >= max_silence_chunks:
+                    if self.speech_buffer and len(self.speech_buffer) >= self.min_speech_trigger:
+                        self._queue_transcription(np.concatenate(self.speech_buffer))
+                    # Always clear buffer and reset counter regardless of min_speech_trigger
                     self.speech_buffer = []
+                    silence_counter = 0
 
     def start(self):
         """Starts the capture and processing threads."""
@@ -189,9 +192,9 @@ class RealTimeSTTApp:
         self.is_running = False
         self.recorder.stop_recording()
         if hasattr(self, 'thread'):
-            self.thread.join(timeout=0)
+            self.thread.join(timeout=2.0)
         if hasattr(self, 'transcription_thread'):
-            self.transcription_thread.join(timeout=0)
+            self.transcription_thread.join(timeout=2.0)
 
     def _queue_transcription(self, audio_data):
         """Pushes an audio block to the transcription queue."""

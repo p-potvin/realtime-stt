@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (
     QComboBox, QHBoxLayout, QFrame, QGridLayout, QPushButton, QSizePolicy,
     QColorDialog, QSpinBox, QFontComboBox
 )
-from PySide6.QtCore import Qt, Signal, QPoint
+from PySide6.QtCore import Qt, Signal, Slot, QPoint
 from PySide6.QtGui import QColor, QFont
 from vault_themes.theme_manager import VaultThemeManager
 
@@ -42,8 +42,9 @@ class SubtitleWindow(QMainWindow):
         self.caption_label = QLabel("Real-time STT Active...")
         self.caption_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.caption_label.setWordWrap(True)
-        # Give some max width to keep it readable
         self.caption_label.setMaximumWidth(1200)
+
+        self._prev_text = ""
 
         self.shadow = QGraphicsDropShadowEffect()
         self.shadow.setBlurRadius(4)
@@ -81,9 +82,13 @@ class SubtitleWindow(QMainWindow):
         self._dragging = False
         event.accept()
 
+    @Slot(str)
     def update_caption(self, text: str):
-        self.caption_label.setText(text)
-        # Snap the size exactly to the text boundaries
+        # Rolling 2-line display: previous sentence on top, current on bottom.
+        # This softens the transition between sentences by giving the reader context.
+        display = f"{self._prev_text}\n{text}" if self._prev_text else text
+        self.caption_label.setText(display)
+        self._prev_text = text
         self.adjustSize()
 
     def apply_styles(self, styles: dict):
