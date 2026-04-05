@@ -115,6 +115,7 @@ class RealTimeSTTApp:
         4. Transcribes and emits window signals.
         """
         self.logger.info("Processing loop started.")
+        self._proc_counter = 0
 
         silence_counter = 0
         # ~320 ms of consecutive silence needed to flush the buffer (10 × 32 ms chunks)
@@ -169,6 +170,7 @@ class RealTimeSTTApp:
                 if silence_counter >= max_silence_chunks:
                     if self.speech_buffer and len(self.speech_buffer) >= self.min_speech_trigger:
                         self._queue_transcription(np.concatenate(self.speech_buffer))
+                    # Always clear buffer and reset counter regardless of min_speech_trigger
                     self.speech_buffer = []
                     silence_counter = 0
 
