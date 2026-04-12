@@ -21,7 +21,7 @@ class RealtimeSTTEngine:
     """
     def __init__(
         self, 
-        model_size: str = "medium", 
+        model_size: str = "distil-small.en", 
         device: str = "cuda", 
         compute_type: str = "float16",
         samplerate: int = 16000,

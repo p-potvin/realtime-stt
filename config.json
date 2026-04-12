@@ -1,15 +1,15 @@
 {
     "theme_idx": 6,
     "font_family": "Segoe UI",
-    "font_size": 12,
-    "font_weight": 400,
-    "font_italic": false,
+    "font_size": 13,
+    "font_weight": 700,
+    "font_italic": true,
     "font_underline": false,
     "text_color": "#00aa00",
-    "outline_color": "#55aaff",
-    "outline_width": 30,
-    "show_subtitle_bg": true,
+    "outline_color": "#ff557f",
+    "outline_width": 5,
+    "show_subtitle_bg": false,
     "skip_vad": false,
     "subtitles_visible": true,
-    "active_engine": "Parakeet"
+    "active_engine": "Whisper"
 }

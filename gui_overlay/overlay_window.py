@@ -1,3 +1,4 @@
+import logging
 import sys
 import os
 import json
@@ -6,8 +7,8 @@ from PySide6.QtWidgets import (
     QComboBox, QHBoxLayout, QFrame, QGridLayout, QPushButton, QSizePolicy,
     QColorDialog, QSpinBox, QFontComboBox
 )
-from PySide6.QtCore import Qt, Signal, QPoint
-from PySide6.QtGui import QColor, QFont
+from PySide6.QtCore import Qt, Signal, QPoint, QTimer
+from PySide6.QtGui import QColor, QCursor, QFont
 from vault_themes.theme_manager import VaultThemeManager
 
 class SubtitleWindow(QMainWindow):
@@ -22,28 +23,54 @@ class SubtitleWindow(QMainWindow):
             Qt.WindowType.WindowStaysOnTopHint | 
             Qt.WindowType.Tool |
             # Qt.WindowType.WindowTransparentForInput | # Removed to allow dragging
-            Qt.WindowType.NoDropShadowWindowHint # Prevents ugly OS-level ghost borders
+            Qt.WindowType.NoDropShadowWindowHint | # Prevents ugly OS-level ghost borders
+            Qt.WindowType.BypassWindowManagerHint | # Avoids taskbar icon and alt-tab presence on Windows
+            Qt.WindowType.X11BypassWindowManagerHint | # Same for Linux/X11
+            Qt.WindowType.BypassGraphicsProxyWidget | # Avoids some weird Qt rendering issues on certain platforms
+            #Qt.WindowType.NoFocus | # Prevents stealing focus on click, but still allows interaction for dragging and context menu if needed
+            Qt.WindowType.ToolTip # Ensures the window is treated as a tooltip for better compatibility with various window managers and to avoid focus issues
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_X11BypassTransientForHint, True)
+        self.setCursor(QCursor(Qt.CursorShape.SizeAllCursor))
         self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground, True)
         self.setStyleSheet("QMainWindow { background: transparent; border: none; margin: 0; padding: 0; }")
-        
+
         # Draggable state
         self._dragging = False
         self._drag_pos = QPoint()
 
         self.central_widget = QWidget()
+        """ self.central_widget.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint | 
+            Qt.WindowType.WindowStaysOnTopHint | 
+            Qt.WindowType.Tool |
+            Qt.WindowType.NoDropShadowWindowHint | # Prevents ugly OS-level ghost borders
+            Qt.WindowType.BypassWindowManagerHint | # Avoids taskbar icon and alt-tab presence on Windows
+            Qt.WindowType.X11BypassWindowManagerHint | # Same for Linux/X11
+            Qt.WindowType.BypassGraphicsProxyWidget | # Avoids some weird Qt rendering issues on certain platforms
+            Qt.WindowType.ToolTip # Ensures the window is treated as a tooltip for better compatibility with various window managers and to avoid focus issues
+        ) """
+        self.central_widget.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        #self.central_widget.setAttribute(Qt.WidgetAttribute.WA_X11BypassTransientForHint, True)
+        #self.central_widget.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground, True)
         self.central_widget.setStyleSheet("QWidget { background: transparent; border: none; margin: 0; padding: 0; }")
+        
         self.main_layout = QVBoxLayout(self.central_widget)
-        self.main_layout.setContentsMargins(10, 10, 10, 10) # Padding for click area
+        #self.main_layout.setContentsMargins(10, 10, 10, 10) # Padding for click area
+        #self.main_layout.setStyleSheet("QVBoxLayout { background: transparent; border: none; margin: 0; padding: 0; }")
         self.main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setCentralWidget(self.central_widget)
 
         self.caption_label = QLabel("Real-time STT Active...")
         self.caption_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.caption_label.setWordWrap(True)
-        # Give some max width to keep it readable
-        self.caption_label.setMaximumWidth(1200)
+
+        # Determine 90% of screen width as a max width to keep text readable
+        screen = QApplication.primaryScreen()
+        work_geo = screen.availableGeometry()
+        self.caption_label.setMaximumWidth(int(work_geo.width() * 0.9))
+        self.caption_label.setMinimumWidth(int(work_geo.width() * 0.7)) # Prevent excessive shrinking on short text
 
         self.shadow = QGraphicsDropShadowEffect()
         self.shadow.setBlurRadius(4)
@@ -52,6 +79,23 @@ class SubtitleWindow(QMainWindow):
 
         self.main_layout.addWidget(self.caption_label)
 
+        self.caption_label_2 = QLabel("")
+        self.caption_label_2.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.caption_label_2.setWordWrap(True)
+        self.caption_label_2.setMaximumWidth(int(work_geo.width() * 0.9))
+        self.caption_label_2.setMinimumWidth(int(work_geo.width() * 0.7))
+
+        self.shadow_2 = QGraphicsDropShadowEffect()
+        self.shadow_2.setBlurRadius(4)
+        self.shadow_2.setOffset(2, 2)
+        self.caption_label_2.setGraphicsEffect(self.shadow_2)
+        
+        self.main_layout.addWidget(self.caption_label_2)
+
+        # Clear timer: 3000ms silence clearing
+        self.clear_timer = QTimer(self)
+        self.clear_timer.setInterval(3000)
+        self.clear_timer.timeout.connect(self._clear_caption)
         self._set_default_pos()
 
     def _set_default_pos(self):
@@ -81,35 +125,67 @@ class SubtitleWindow(QMainWindow):
         self._dragging = False
         event.accept()
 
-    def update_caption(self, text: str):
-        self.caption_label.setText(text)
+    def _clear_caption(self):
+        """Clears the subtitles when silence duration is reached."""
+        self.caption_label.setText("")
+        self.caption_label_2.setText("")
+        self.caption_label.adjustSize()
+        self.caption_label_2.adjustSize()
+        self.adjustSize()
+        self.clear_timer.stop()
+
+    def update_caption(self, text: str, label_idx: int = 0):
+        if label_idx == 0:
+            self.caption_label.setText(text)
+            self.caption_label_2.setText("")
+        else:
+            self.caption_label_2.setText(text)
+        
         # Snap the size exactly to the text boundaries
+        self.caption_label.adjustSize()
+        self.caption_label_2.adjustSize()
         self.adjustSize()
 
+        # Restart the silence timer
+        if text.strip():
+            self.clear_timer.start(3000)
+        else:
+            self.clear_timer.stop()
+
     def apply_styles(self, styles: dict):
-        # Update text style
-        font_style = "italic" if styles.get("font_italic") else "normal"
-        font_under = "underline" if styles.get("font_underline") else "none"
+        # Explicit QFont assignment fixes stylesheet bounding box truncation bugs (especially 12pt bold)
+        font = QFont(styles.get('font_family', 'Segoe UI Semilight'))
+        font.setPointSize(styles.get('font_size', 13))
+        font.setBold(styles.get('font_weight', 700) >= 700)
+        font.setItalic(bool(styles.get('font_italic', False)))
+        font.setUnderline(bool(styles.get('font_underline', False)))
+        self.caption_label.setFont(font)
+
+        self.caption_label_2.setStyleSheet(f"""QLabel {{ color: {styles.get('text_color', '#00FF00')}; }}""")
+        self.caption_label_2.setFont(font)
+
         bg_color = styles.get("bg_color", "transparent")
-        
-        self.caption_label.setStyleSheet(f"""
+        """ self.caption_label.setStyleSheet(f
             QLabel {{
                 color: {styles.get('text_color', '#FFFFFF')};
-                font-family: '{styles.get('font_family', 'Segoe UI Semilight')}';
-                font-size: {styles.get('font_size', 24)}pt;
-                font-weight: {styles.get('font_weight', 700)};
-                font-style: {font_style};
-                text-decoration: {font_under};
                 background-color: {bg_color};
-                padding: 15px;
+                padding: 8px 16px;
+                margin: 4px;
                 border-radius: 8px;
                 border: none;
             }}
-        """)
+        ) """
         
         # Update shadow
         self.shadow.setColor(QColor(styles.get('outline_color', '#000000')))
         self.shadow.setBlurRadius(styles.get('outline_width', 4))
+        self.shadow_2.setColor(QColor(styles.get('outline_color', '#000000')))
+        self.shadow_2.setBlurRadius(styles.get('outline_width', 4))
+        
+        # Force layout recalculation after font changes
+        self.caption_label.adjustSize()
+        self.caption_label_2.adjustSize()
+        self.adjustSize()
 
 
 class SettingsWindow(QMainWindow):
@@ -132,7 +208,7 @@ class SettingsWindow(QMainWindow):
 
         # State
         self.font_family = "Segoe UI Semilight"
-        self.font_size = 24
+        self.font_size = 13
         self.font_weight = 700 # Bold by default!
         self.font_italic = False
         self.font_underline = False
@@ -144,7 +220,7 @@ class SettingsWindow(QMainWindow):
         self.show_subtitle_bg = False # Usually we just want the text with dropshadow
         self.skip_vad = False
         self.subtitles_visible = True
-        self.active_engine = "Parakeet"
+        self.active_engine = "Whisper"
         
         self.config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "config.json")
         self._load_config()
@@ -169,8 +245,8 @@ class SettingsWindow(QMainWindow):
                 self.show_subtitle_bg = data.get("show_subtitle_bg", self.show_subtitle_bg)
                 self.skip_vad = data.get("skip_vad", self.skip_vad)
                 self.subtitles_visible = data.get("subtitles_visible", self.subtitles_visible)
-                # Engine is forced to Parakeet in UI, ignore active_engine from config
-                self.active_engine = "Parakeet"
+                # Engine is forced to Whisper in UI, ignore active_engine from config
+                self.active_engine = "Whisper"
             except Exception as e:
                 print(f"Failed to load config: {e}")
 
@@ -255,6 +331,7 @@ class SettingsWindow(QMainWindow):
         row_1_layout.addWidget(self.skip_vad_checkbox)
 
         self.debug_checkbox = QCheckBox("Debug")
+        self.debug_checkbox.setChecked(True) # Default to true to help diagnosis
         self.debug_checkbox.stateChanged.connect(self._on_debug_toggled)
         row_1_layout.addWidget(self.debug_checkbox)
 
@@ -318,7 +395,11 @@ class SettingsWindow(QMainWindow):
         self.outline_width_spin.setRange(0, 30)
         self.outline_width_spin.setValue(self.outline_width)
         self.outline_width_spin.setMinimumWidth(60)
+        # Block signals temporarily to avoid double pinging on startup
+        self.outline_width_spin.blockSignals(True)
         self.outline_width_spin.valueChanged.connect(self._update_outline_width)
+        self.outline_width_spin.blockSignals(False)
+        
         row_3_layout.addWidget(self.outline_width_spin)
         row_3_layout.addStretch()
         self.control_layout.addLayout(row_3_layout)
@@ -326,14 +407,9 @@ class SettingsWindow(QMainWindow):
         self.main_layout.addWidget(self.control_panel)
         self.apply_panel_style()
 
-    # Removed _on_engine_changed as we enforce Parakeet in UI natively
-
     def _emit_current_styles(self):
-        self.settings_version += 1
         engine_val = "nvidia" if self.active_engine == "Parakeet" else "whisper"
-        self._save_config()
-        self.settings_changed_signal.emit({
-            "version": self.settings_version,
+        new_state = {
             "font_family": self.font_family,
             "font_size": self.font_size,
             "font_weight": self.font_weight,
@@ -346,7 +422,18 @@ class SettingsWindow(QMainWindow):
             "is_visible": self.subtitles_visible,
             "skip_vad": self.skip_vad,
             "active_engine": engine_val
-        })
+        }
+        
+        # Prevent spamming signals if state hasn't actually mutated
+        if getattr(self, '_last_emitted_state', None) == new_state:
+            return
+            
+        self._last_emitted_state = new_state
+        self.settings_version += 1
+        new_state["version"] = self.settings_version
+        
+        self._save_config()
+        self.settings_changed_signal.emit(new_state)
 
     def apply_panel_style(self):
         t = self.theme_manager.get_theme(self.current_theme_idx - 1)

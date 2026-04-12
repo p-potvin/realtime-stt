@@ -51,19 +51,13 @@ class AudioRecorder:
                     # Convert to flattened mono, ensure float32
                     mono_data = data.mean(axis=1).astype(np.float32)
                     
+                    # We no longer apply arbitrary linear gain here.
+                    # Normalization is now handled inside VAD and STT directly.
+                    peak = np.max(np.abs(mono_data))
+
                     # Log peak volume every 100 chunks (~3 seconds) to verify audio flow
                     if not hasattr(self, '_log_counter'): self._log_counter = 0
                     self._log_counter += 1
-                    
-                    # Software Gain: If the signal is consistently quiet (due to Windows background throttling)
-                    # we apply a slight boost here to ensure the VAD and STT get a healthy signal.
-                    peak = np.max(np.abs(mono_data))
-                    if 0 < peak < 0.2:
-                        # Apply a 2x boost (approx 6dB) to compensate for potential OS attenuation
-                        # This is a safe baseline boost for loopback.
-                        mono_data = mono_data * 2.5
-                        # Re-calculate peak for debugging
-                        peak = np.max(np.abs(mono_data))
 
                     if self._log_counter % 100 == 0:
                         self.logger.debug(f"Audio Flow Check - Chunk: {self._log_counter} | Peak Volume: {peak:.5f}")
