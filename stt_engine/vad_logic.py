@@ -2,11 +2,14 @@ import torch
 import numpy as np
 import logging
 
+# Minimum peak amplitude to treat audio as a real signal rather than hardware noise floor.
+_SILENCE_GATE = 0.005
+
 class SileroVADWrapper:
     """
-    A lightweight and reusable wrapper for Silero VAD, providing efficient 
+    A lightweight and reusable wrapper for Silero VAD, providing efficient
     speech activity detection for real-time applications.
-    
+
     Optimized to minimize CPU usage while filtering non-speech background noise.
     """
     def __init__(self, model_name="silero_vad", samplerate=16000, device="cpu", logger_name="vaultwares.vad", bypass=False):
@@ -55,22 +58,26 @@ class SileroVADWrapper:
     def get_speech_prob(self, audio_chunk):
         """
         Returns the probability of speech in the given audio chunk.
-        
+
         Args:
             audio_chunk (np.ndarray): 1D float32 numpy array.
-            
+
         Returns:
             float: Probability (0.0 to 1.0).
         """
         try:
-            # Ensure audio is properly normalized float32
             if audio_chunk.dtype != np.float32:
                 audio_chunk = audio_chunk.astype(np.float32)
-                
-            # Convert numpy chunk to tensor
+
+            peak = float(np.max(np.abs(audio_chunk)))
+
+            # Absolute silence gate: values this small are hardware noise floor, not speech.
+            # Avoids feeding a massively-scaled noise signal into the stateful VAD model.
+            if peak < _SILENCE_GATE:
+                return 0.0
+
             audio_tensor = torch.from_numpy(audio_chunk).to(self.device)
-            
-            # Forward pass through the model
+
             with torch.no_grad():
                 vad_input = audio_tensor.clone() 
                 # Avoid blasting the noise floor (e.g., 0.001) to 1.0 by requiring a minimum peak
@@ -87,14 +94,19 @@ class SileroVADWrapper:
             self.logger.warning(f"Error calculating speech probability: {e}")
             return 0.0
 
+    def reset_states(self):
+        """Resets the VAD model's internal recurrent state. Call between independent audio sessions."""
+        if self.model is not None:
+            self.model.reset_states()
+
     def is_speech(self, audio_chunk, threshold=0.4):
         """
         Simple boolean check for speech activity.
-        
+
         Args:
             audio_chunk (np.ndarray): 1D float32 numpy array.
             threshold (float): Detection threshold (default 0.4).
-            
+
         Returns:
             bool: True if probability >= threshold.
         """

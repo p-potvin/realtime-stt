@@ -7,8 +7,8 @@ from PySide6.QtWidgets import (
     QComboBox, QHBoxLayout, QFrame, QGridLayout, QPushButton, QSizePolicy,
     QColorDialog, QSpinBox, QFontComboBox
 )
-from PySide6.QtCore import Qt, Signal, QPoint, QTimer
-from PySide6.QtGui import QColor, QCursor, QFont
+from PySide6.QtCore import Qt, Signal, Slot, QPoint
+from PySide6.QtGui import QColor, QFont
 from vault_themes.theme_manager import VaultThemeManager
 
 class SubtitleWindow(QMainWindow):
@@ -72,6 +72,8 @@ class SubtitleWindow(QMainWindow):
         self.caption_label.setMaximumWidth(int(work_geo.width() * 0.9))
         self.caption_label.setMinimumWidth(int(work_geo.width() * 0.7)) # Prevent excessive shrinking on short text
 
+        self._prev_text = ""
+
         self.shadow = QGraphicsDropShadowEffect()
         self.shadow.setBlurRadius(4)
         self.shadow.setOffset(2, 2)
@@ -125,6 +127,7 @@ class SubtitleWindow(QMainWindow):
         self._dragging = False
         event.accept()
 
+    @Slot(str)
     def _clear_caption(self):
         """Clears the subtitles when silence duration is reached."""
         self.caption_label.setText("")
@@ -135,13 +138,16 @@ class SubtitleWindow(QMainWindow):
         self.clear_timer.stop()
 
     def update_caption(self, text: str, label_idx: int = 0):
+        # Rolling 2-line display: previous sentence on top, current on bottom.
+        # This softens the transition between sentences by giving the reader context.
+        display = f"{self._prev_text}\n{text}" if self._prev_text else text
         if label_idx == 0:
-            self.caption_label.setText(text)
+            self.caption_label.setText(display)
             self.caption_label_2.setText("")
         else:
             self.caption_label_2.setText(text)
         
-        # Snap the size exactly to the text boundaries
+        self._prev_text = text
         self.caption_label.adjustSize()
         self.caption_label_2.adjustSize()
         self.adjustSize()
