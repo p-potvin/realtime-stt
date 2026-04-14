@@ -91,6 +91,12 @@ class RealtimeSTTEngine:
         except Exception as e:
             self.logger.error(f"Error in STT Engine loop: {e}")
         finally:
+            # If the engine is stopped while speech is in progress (or a buffered
+            # phrase has not yet seen trailing silence), flush once so the last
+            # utterance is not dropped.
+            if self.audio_buffer:
+                self.logger.debug("Flushing buffered audio on engine shutdown.")
+                self._trigger_transcription()
             self.recorder.stop_recording()
 
     def _trigger_transcription(self):
