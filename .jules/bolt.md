@@ -1,3 +1,6 @@
+# Performance Learnings
+
+- **String Concatenation in Faster-Whisper Wrapper**: Replacing `+=` string concatenation with `"".join(...)` and generator expressions in `FasterWhisperWrapper.format_to_srt` prevents O(N^2) memory reallocation. Even though CPython has internal optimizations that make `+=` perform relatively well for single-reference strings, explicit `.join()` guarantees O(N) allocation scaling and avoids unpredictable performance drop-offs at larger list sizes, improving overall scalability and conforming to best practices in the transcription code path.
 # Bolt Learnings: String Combination Optimization
 - Replace multiple iterations of `random.choice` concatenated together with cryptographic generators for identifiers.
 - Example: Iterative string concatenations like `"".join(random.choices(CHARS, k=4))` take ~0.16s for 100,000 executions, whereas `secrets.token_hex(2)` takes only ~0.14s and is significantly more concise without caching problems or dependencies.
