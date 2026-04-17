@@ -4,7 +4,7 @@ import time
 import threading
 import numpy as np
 import logging
-import random
+import secrets
 import string
 import argparse
 import subprocess
@@ -49,7 +49,7 @@ class RealTimeSTTApp:
     Faster-Whisper transcription, and GUI overlay updates.
     """
     def __init__(self, model_size="distil-small.en", device="cpu", language="en", theme_idx=2):
-        self.correlation_id = "c" + "".join(random.choices(string.ascii_lowercase + string.digits, k=6))
+        self.correlation_id = "c" + "".join(secrets.choice(string.ascii_lowercase + string.digits) for _ in range(6))
         self.logger = logging.getLogger("vaultwares.main")
         self.logger.info(f"Starting realtime-stt app (CorrelationId: {self.correlation_id})")
         
@@ -254,7 +254,7 @@ class RealTimeSTTApp:
 
             # Generate a unique filename based on timestamp
             timestamp = time.strftime("%Y%m%d-%H%M%S")
-            audio_id = "".join(random.choices(string.ascii_lowercase + string.digits, k=4))
+            audio_id = "".join(secrets.choice(string.ascii_lowercase + string.digits) for _ in range(4))
             audio_path = os.path.join(log_dir, f"transcription_{timestamp}_{audio_id}.mp3")
 
             if self.simulate_lag:
