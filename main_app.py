@@ -150,17 +150,12 @@ class RealTimeSTTApp:
                     if self.speech_buffer:
                         self.logger.debug(f"Max buffer limit reached ({self.max_buffer_size}). Triggering transcription.")
                         self._queue_transcription(np.concatenate(self.speech_buffer))
-                    # Slide the window (keep 32 ms overlap for context)
-                    self._queue_transcription(np.concatenate(self.speech_buffer))
                     # Keep 1-chunk overlap for context continuity
                     self.speech_buffer = self.speech_buffer[-1:]
             else:
                 # Once speech has started, keep buffering even during brief pauses so that
                 # natural word gaps don't fragment the audio fed to the STT model.
                 if is_in_speech:
-                    self.speech_buffer.append(chunk)
-
-                if self.speech_buffer:
                     self.speech_buffer.append(chunk)
                 silence_counter += 1
 
