@@ -292,7 +292,7 @@ class RealTimeSTTApp:
                     initial_prompt=""
                 )
                 self.logger.debug("FasterWhisper transcribe finished, extracting text.")
-                text = "".join([s.text for s in segments]).strip()
+                text = "".join(s.text for s in segments).strip()
                 self.logger.debug(f"FasterWhisper extracted text: '{text}'")
 
             if text and len(text.strip()) > 1:

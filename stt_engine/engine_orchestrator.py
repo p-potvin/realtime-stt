@@ -118,7 +118,7 @@ class RealtimeSTTEngine:
                 segments, info = self.stt.transcribe(full_audio, vad_filter=False)
                 
                 # Join segments into a single string
-                full_text = " ".join([seg.text for seg in segments]).strip()
+                full_text = " ".join(seg.text for seg in segments).strip()
                 
                 duration = time.time() - start_time
                 if full_text:

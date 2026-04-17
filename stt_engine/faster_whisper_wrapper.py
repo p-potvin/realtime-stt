@@ -175,7 +175,7 @@ class FasterWhisperWrapper:
             word_timestamps=False
         )
         
-        text = "".join([s.text for s in segments]).strip()
+        text = "".join(s.text for s in segments).strip()
         return text, info
 
     def format_to_srt(self, segments: List) -> str:
