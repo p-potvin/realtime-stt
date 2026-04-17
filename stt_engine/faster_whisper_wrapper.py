@@ -182,12 +182,10 @@ class FasterWhisperWrapper:
         """
         Converts transcription segments to SRT format string.
         """
-        srt_content = ""
-        for i, segment in enumerate(segments):
-            start = self._format_timestamp(segment.start)
-            end = self._format_timestamp(segment.end)
-            srt_content += f"{i + 1}\n{start} --> {end}\n{segment.text.strip()}\n\n"
-        return srt_content
+        return "".join(
+            f"{i + 1}\n{self._format_timestamp(segment.start)} --> {self._format_timestamp(segment.end)}\n{segment.text.strip()}\n\n"
+            for i, segment in enumerate(segments)
+        )
 
     def _format_timestamp(self, seconds: float) -> str:
         td_hours, rem = divmod(seconds, 3600)
