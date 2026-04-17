@@ -8,6 +8,7 @@ import random
 import string
 import argparse
 import subprocess
+import secrets
 
 import vault_sync
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
@@ -49,7 +50,7 @@ class RealTimeSTTApp:
     Faster-Whisper transcription, and GUI overlay updates.
     """
     def __init__(self, model_size="distil-small.en", device="cpu", language="en", theme_idx=2):
-        self.correlation_id = "c" + "".join(random.choices(string.ascii_lowercase + string.digits, k=6))
+        self.correlation_id = "c" + secrets.token_hex(3)
         self.logger = logging.getLogger("vaultwares.main")
         self.logger.info(f"Starting realtime-stt app (CorrelationId: {self.correlation_id})")
         
@@ -150,8 +151,6 @@ class RealTimeSTTApp:
                     if self.speech_buffer:
                         self.logger.debug(f"Max buffer limit reached ({self.max_buffer_size}). Triggering transcription.")
                         self._queue_transcription(np.concatenate(self.speech_buffer))
-                    # Slide the window (keep 32 ms overlap for context)
-                    self._queue_transcription(np.concatenate(self.speech_buffer))
                     # Keep 1-chunk overlap for context continuity
                     self.speech_buffer = self.speech_buffer[-1:]
             else:
@@ -160,8 +159,6 @@ class RealTimeSTTApp:
                 if is_in_speech:
                     self.speech_buffer.append(chunk)
 
-                if self.speech_buffer:
-                    self.speech_buffer.append(chunk)
                 silence_counter += 1
 
                 if silence_counter >= max_silence_chunks:
@@ -254,7 +251,7 @@ class RealTimeSTTApp:
 
             # Generate a unique filename based on timestamp
             timestamp = time.strftime("%Y%m%d-%H%M%S")
-            audio_id = "".join(random.choices(string.ascii_lowercase + string.digits, k=4))
+            audio_id = secrets.token_hex(2)
             audio_path = os.path.join(log_dir, f"transcription_{timestamp}_{audio_id}.mp3")
 
             if self.simulate_lag:
