@@ -158,7 +158,6 @@ class RealTimeSTTApp:
                 # natural word gaps don't fragment the audio fed to the STT model.
                 if is_in_speech:
                     self.speech_buffer.append(chunk)
-
                 silence_counter += 1
 
                 if silence_counter >= max_silence_chunks:
