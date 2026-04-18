@@ -31,3 +31,7 @@ When assembling transcription segments into a single string using `str.join()`, 
 By converting the list comprehension to a generator expression (`(seg.text for seg in segments)`), we avoid creating the intermediate list entirely. For large lists of items, the memory needed for intermediate allocations drops significantly (measured ~99.9% reduction in intermediate object size) at virtually no CPU performance penalty.
 
 - **Redundant Numpy Array Operations**: Be cautious of recalculating `np.max(np.abs(array))` if the array is not modified. Store the result in a variable to avoid O(N) re-computation overhead. This yielded a ~50% performance improvement (from 0.127s to 0.066s over 10000 iterations) in `stt_engine/audio_capture.py` when running audio processing tasks.
+
+## 2026-04-18 - Avoid O(N) array recalculation after scalar operations
+**Learning:** In audio processing loops where Numpy arrays are uniformly scaled by a constant factor, recalculating aggregate metrics like `np.max(np.abs(data))` is an unnecessary O(N) operation. The peak volume scales exactly with the data itself.
+**Action:** When a signal array is uniformly scaled (`array *= scalar`), update dependent peak amplitude metrics mathematically (`peak *= scalar`) instead of triggering expensive full-array recalculations.

@@ -50,7 +50,7 @@ class AudioRecorder:
                     data = recorder.record(numframes=self.blocksize)
                     # Convert to flattened mono, ensure float32
                     mono_data = data.mean(axis=1).astype(np.float32)
-                    
+
                     # We no longer apply arbitrary linear gain here.
                     # Normalization is now handled inside VAD and STT directly.
                     peak = np.max(np.abs(mono_data))
@@ -58,14 +58,13 @@ class AudioRecorder:
                     # Log peak volume every 100 chunks (~3 seconds) to verify audio flow
                     if not hasattr(self, '_log_counter'): self._log_counter = 0
                     self._log_counter += 1
-                    
+
                     # Software gain: boost genuinely quiet (but non-silent) signals to give VAD
                     # and STT a healthy amplitude. The lower bound (0.005) prevents the hardware
                     # noise floor from being amplified; the upper bound (0.15) avoids clipping
                     # audio that is already reasonably loud.
                     if 0.005 <= peak < 0.15:
                         mono_data = mono_data * 2.5
-                        # Avoid O(N) recalculation since the array was uniformly multiplied by a positive scalar
                         peak *= 2.5
 
                     if self._log_counter % 100 == 0:
@@ -105,7 +104,7 @@ if __name__ == "__main__":
     print("Available devices:")
     for idx, name in recorder.list_audio_devices():
         print(f"{idx}: {name}")
-    
+
     recorder.start_recording()
     try:
         import time
@@ -116,4 +115,3 @@ if __name__ == "__main__":
             time.sleep(0.3)
     finally:
         recorder.stop_recording()
-
