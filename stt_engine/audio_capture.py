@@ -63,7 +63,6 @@ class AudioRecorder:
                     # and STT a healthy amplitude. The lower bound (0.005) prevents the hardware
                     # noise floor from being amplified; the upper bound (0.15) avoids clipping
                     # audio that is already reasonably loud.
-                    peak = np.max(np.abs(mono_data))
                     if 0.005 <= peak < 0.15:
                         mono_data = mono_data * 2.5
                         peak = np.max(np.abs(mono_data))
