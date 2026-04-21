@@ -35,3 +35,7 @@ By converting the list comprehension to a generator expression (`(seg.text for s
 ## 2026-04-18 - Avoid O(N) array recalculation after scalar operations
 **Learning:** In audio processing loops where Numpy arrays are uniformly scaled by a constant factor, recalculating aggregate metrics like `np.max(np.abs(data))` is an unnecessary O(N) operation. The peak volume scales exactly with the data itself.
 **Action:** When a signal array is uniformly scaled (`array *= scalar`), update dependent peak amplitude metrics mathematically (`peak *= scalar`) instead of triggering expensive full-array recalculations.
+
+## 2026-05-18 - Optimize real-time STT loop by removing redundant I/O and loop operations
+**Learning:** `secrets.choice` loops inside a high frequency loop are inefficient for generating IDs. `secrets.token_hex` is a highly optimized C implementation that can generate IDs 10x faster. Checking `os.path.exists()` for directories inside a high-frequency STT worker thread degrades latency by incurring redundant disk I/O operations.
+**Action:** When a directory (`audio_logs`) is going to be written to repeatedly inside a loop, move the initialization and checking of the directory (`os.path.exists`/`os.makedirs`) to application startup/initialization phase. For random string generation tasks where speed is prioritized (e.g. temporary logs/IDs), use `secrets.token_hex(n)` instead of list/generator comprehensions with string/secrets choice.

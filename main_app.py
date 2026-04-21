@@ -50,10 +50,17 @@ class RealTimeSTTApp:
     Faster-Whisper transcription, and GUI overlay updates.
     """
     def __init__(self, model_size="distil-small.en", device="cpu", language="en", theme_idx=2):
-        self.correlation_id = "c" + "".join(secrets.choice(string.ascii_lowercase + string.digits) for _ in range(6))
+        # Performance: Use secrets.token_hex() instead of random.choice() loops for speed
+        self.correlation_id = "c" + secrets.token_hex(3)
         self.logger = logging.getLogger("vaultwares.main")
         self.logger.info(f"Starting realtime-stt app (CorrelationId: {self.correlation_id})")
         
+        # Performance: Initialize log directory once at startup to prevent
+        # redundant disk I/O in the high-frequency _run_stt loop.
+        self.log_dir = os.path.join(os.getcwd(), "audio_logs")
+        if not os.path.exists(self.log_dir):
+            os.makedirs(self.log_dir)
+
         self.language = language
         self.theme_idx = theme_idx
         self.device = device
@@ -244,14 +251,11 @@ class RealTimeSTTApp:
 
     def _run_stt(self, full_audio, label_idx):
         try:
-            log_dir = os.path.join(os.getcwd(), "audio_logs")
-            if not os.path.exists(log_dir):
-                os.makedirs(log_dir)
-
             # Generate a unique filename based on timestamp
             timestamp = time.strftime("%Y%m%d-%H%M%S")
-            audio_id = "".join(secrets.choice(string.ascii_lowercase + string.digits) for _ in range(4))
-            audio_path = os.path.join(log_dir, f"transcription_{timestamp}_{audio_id}.mp3")
+            # Performance: Use secrets.token_hex() instead of a loop for faster ID generation
+            audio_id = secrets.token_hex(2)
+            audio_path = os.path.join(self.log_dir, f"transcription_{timestamp}_{audio_id}.mp3")
 
             if self.simulate_lag:
                 time.sleep(3.0) # Introduce artificial 3 second latency for testing
