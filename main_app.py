@@ -55,8 +55,7 @@ class RealTimeSTTApp:
         self.logger.info(f"Starting realtime-stt app (CorrelationId: {self.correlation_id})")
         
         self.log_dir = os.path.join(os.getcwd(), "audio_logs")
-        if not os.path.exists(self.log_dir):
-            os.makedirs(self.log_dir)
+        os.makedirs(self.log_dir, exist_ok=True)
 
         self.language = language
         self.theme_idx = theme_idx
