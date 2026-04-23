@@ -2,10 +2,14 @@ import logging
 import sys
 import types
 import unittest
-import numpy as np
+from unittest.mock import MagicMock
 
-# Stub optional audio dependency before importing engine module.
-sys.modules.setdefault("soundcard", types.SimpleNamespace())
+# Stub dependencies
+sys.modules['numpy'] = MagicMock()
+sys.modules['torch'] = MagicMock()
+sys.modules['soundcard'] = types.SimpleNamespace()
+
+import numpy as np
 
 from stt_engine.engine_orchestrator import RealtimeSTTEngine
 
