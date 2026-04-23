@@ -81,8 +81,7 @@ class SileroVADWrapper:
             with torch.no_grad():
                 vad_input = audio_tensor.clone() 
                 # Avoid blasting the noise floor (e.g., 0.001) to 1.0 by requiring a minimum peak
-                # Now that hardware gain was removed, check native absolute raw peak
-                peak = torch.max(torch.abs(vad_input)).item()
+                # (peak was already calculated natively above on the CPU buffer before tensor transfer)
                 if peak > 0.01:
                     vad_input = vad_input / peak # Normalize to 1.0
                 

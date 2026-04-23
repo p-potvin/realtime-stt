@@ -9,6 +9,7 @@ import secrets
 import string
 import argparse
 import subprocess
+import secrets
 
 import vault_sync
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
@@ -54,8 +55,11 @@ class RealTimeSTTApp:
         self.logger = logging.getLogger("vaultwares.main")
         self.logger.info(f"Starting realtime-stt app (CorrelationId: {self.correlation_id})")
         
+        # Performance: Initialize log directory once at startup to prevent
+        # redundant disk I/O in the high-frequency _run_stt loop.
         self.log_dir = os.path.join(os.getcwd(), "audio_logs")
-        os.makedirs(self.log_dir, exist_ok=True)
+        if not os.path.exists(self.log_dir):
+            os.makedirs(self.log_dir)
 
         self.language = language
         self.theme_idx = theme_idx
@@ -154,17 +158,12 @@ class RealTimeSTTApp:
                     if self.speech_buffer:
                         self.logger.debug(f"Max buffer limit reached ({self.max_buffer_size}). Triggering transcription.")
                         self._queue_transcription(np.concatenate(self.speech_buffer))
-                    # Slide the window (keep 32 ms overlap for context)
-                    self._queue_transcription(np.concatenate(self.speech_buffer))
                     # Keep 1-chunk overlap for context continuity
                     self.speech_buffer = self.speech_buffer[-1:]
             else:
                 # Once speech has started, keep buffering even during brief pauses so that
                 # natural word gaps don't fragment the audio fed to the STT model.
                 if is_in_speech:
-                    self.speech_buffer.append(chunk)
-
-                if self.speech_buffer:
                     self.speech_buffer.append(chunk)
                 silence_counter += 1
 
@@ -292,7 +291,7 @@ class RealTimeSTTApp:
                     initial_prompt=""
                 )
                 self.logger.debug("FasterWhisper transcribe finished, extracting text.")
-                text = "".join([s.text for s in segments]).strip()
+                text = "".join(s.text for s in segments).strip()
                 self.logger.debug(f"FasterWhisper extracted text: '{text}'")
 
             if text and len(text.strip()) > 1:
