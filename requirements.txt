@@ -1,3 +1,4 @@
+# VaultWares realtime-stt — part of the official ecosystem
 faster-whisper>=1.0.0
 # Removed googletrans due to httpx version conflicts
 deep-translator==1.11.1
