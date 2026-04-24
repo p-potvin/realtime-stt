@@ -79,11 +79,15 @@ class SileroVADWrapper:
             audio_tensor = torch.from_numpy(audio_chunk).to(self.device)
 
             with torch.no_grad():
-                vad_input = audio_tensor.clone() 
                 # Avoid blasting the noise floor (e.g., 0.001) to 1.0 by requiring a minimum peak
                 # (peak was already calculated natively above on the CPU buffer before tensor transfer)
                 if peak > 0.01:
-                    vad_input = vad_input / peak # Normalize to 1.0
+                    # 'audio_tensor / peak' naturally creates a new tensor.
+                    # Bypassing the intermediate '.clone()' here avoids a redundant memory
+                    # allocation and copy on a high-frequency hot path.
+                    vad_input = audio_tensor / peak # Normalize to 1.0
+                else:
+                    vad_input = audio_tensor
                 
                 speech_prob = self.model(vad_input, self.samplerate).item()                
             
