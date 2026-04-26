@@ -50,6 +50,8 @@ class RealtimeSTTEngine:
         self.running = False
         self.thread = None
         self.audio_buffer = []
+        # Bolt: O(1) running counter to avoid O(N) recalculations on high-frequency hot paths
+        self.current_samples = 0
         self.speech_detected = False
 
     def _process_loop(self):
@@ -72,10 +74,10 @@ class RealtimeSTTEngine:
                         self.speech_detected = True
                     
                     self.audio_buffer.append(chunk)
+                    self.current_samples += len(chunk)
                     
                     # Optional: Force transcription if buffer exceeds max length
-                    current_samples = sum(len(c) for c in self.audio_buffer)
-                    if current_samples >= self.max_samples:
+                    if self.current_samples >= self.max_samples:
                         self._trigger_transcription()
                 
                 else:
@@ -106,6 +108,7 @@ class RealtimeSTTEngine:
             
         full_audio = np.concatenate(self.audio_buffer)
         self.audio_buffer = []  # Clear buffer immediately
+        self.current_samples = 0 # Reset O(1) sample counter
         
         if len(full_audio) < self.min_samples:
             self.logger.debug(f"Segment too short for transcription ({len(full_audio)} samples).")
