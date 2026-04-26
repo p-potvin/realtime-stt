@@ -64,7 +64,8 @@ class AudioRecorder:
                     # noise floor from being amplified; the upper bound (0.15) avoids clipping
                     # audio that is already reasonably loud.
                     if 0.005 <= peak < 0.15:
-                        mono_data = mono_data * 2.5
+                        # Bolt: Use in-place multiplication to prevent memory churn and redundant allocations
+                        mono_data *= 2.5
                         # Avoid O(N) recalculation since the array was uniformly multiplied by a positive scalar
                         peak *= 2.5
 
