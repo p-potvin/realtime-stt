@@ -188,10 +188,14 @@ class FasterWhisperWrapper:
         )
 
     def _format_timestamp(self, seconds: float) -> str:
-        td_hours, rem = divmod(seconds, 3600)
-        td_mins, td_secs = divmod(rem, 60)
-        td_ms = int((rem - int(rem)) * 1000)
-        return f"{int(td_hours):02d}:{int(td_mins):02d}:{int(td_secs):02d},{td_ms:03d}"
+        # Bolt: Avoid floating point remainders inside `divmod` by converting
+        # seconds to milliseconds first. Pure integer arithmetic is measurably
+        # faster for formatting thousands of timestamps into SRT.
+        ms = int(seconds * 1000)
+        ms, td_ms = divmod(ms, 1000)
+        ms, td_secs = divmod(ms, 60)
+        td_hours, td_mins = divmod(ms, 60)
+        return f"{td_hours:02d}:{td_mins:02d}:{td_secs:02d},{td_ms:03d}"
 
     def log_info(self, msg: str):
         self.logger.info(msg)
