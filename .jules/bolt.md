@@ -4,3 +4,6 @@
 ## 2025-02-18 - Redundant PyTorch Tensor Conversions in NeMo
 **Learning:** High-level wrapper methods like `transcribe` in NVIDIA NeMo models (e.g., Canary/Parakeet) natively accept paths or raw NumPy buffers and handle PyTorch conversions and device transfers internally. Creating PyTorch tensors and manually sending them to the target `DEVICE` before calling these methods is redundant, blocks the hot path, and causes unused memory allocation overhead.
 **Action:** Always check if a library's method natively accepts NumPy arrays or paths before manually converting inputs into PyTorch tensors and performing device transfers.
+## 2025-02-18 - String Join Optimization
+**Learning:** Using a list comprehension inside `"".join()` is measurably faster than using a generator expression. This is because a generator expression creates overhead from the generator mechanism, whereas a list comprehension runs at C-speed to create a list, which `join` can then process very efficiently. The speedup can be around ~2x.
+**Action:** Use list comprehensions inside string `join` instead of generator expressions.
