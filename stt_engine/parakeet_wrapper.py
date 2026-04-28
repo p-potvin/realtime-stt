@@ -58,8 +58,10 @@ class ParakeetWorker:
                 # For this wrapper, we use the standard transcribe interface
                 # which handles the internal preprocessing
                 
-                # Convert to torch tensor
-                audio_tensor = torch.from_numpy(audio_data).to(DEVICE)
+                # Bolt: Removed redundant `audio_tensor = torch.from_numpy(audio_data).to(DEVICE)`
+                # because the NeMo model's `transcribe` method expects paths or NumPy arrays natively
+                # and handles its own PyTorch conversions. Skipping this avoids an unused allocation
+                # and a blocking device transfer on the hot path.
                 
                 # Canary-1B specific: requires taskname, source_lang, target_lang
                 # We'll use the model's high-level transcribe method which can take audio paths
