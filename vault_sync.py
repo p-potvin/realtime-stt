@@ -1,6 +1,12 @@
 import os
 import subprocess
 import sys
+import re
+
+def is_safe_input(s):
+    if not s or s.startswith("-"):
+        return False
+    return bool(re.match(r"^[\w\-\./:@~+=]+$", s))
 
 def sync_vault_dependencies():
     """
@@ -25,15 +31,19 @@ def sync_vault_dependencies():
 
         try:
             folder, url, branch = line.split()
+            if not (is_safe_input(folder) and is_safe_input(url) and is_safe_input(branch)):
+                print(f"[-] Unsafe input detected in line: '{line}'")
+                continue
+
             print(f"[*] Ensuring dependency: {folder} from {url} ({branch})")
 
             # Check if directory exists
             if not os.path.exists(folder):
                 print(f"[*] Adding new submodule {folder}...")
-                subprocess.run(["git", "submodule", "add", "-b", branch, url, folder], check=True)
+                subprocess.run(["git", "submodule", "add", "-b", branch, "--", url, folder], check=True)
             else:
                 print(f"[*] Updating existing submodule {folder}...")
-                subprocess.run(["git", "submodule", "update", "--init", "--remote", folder], check=True)
+                subprocess.run(["git", "submodule", "update", "--init", "--remote", "--", folder], check=True)
 
         except ValueError:
             print(f"[-] Malformed line in {manifest_path}: '{line}'")
