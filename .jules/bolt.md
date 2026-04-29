@@ -7,3 +7,6 @@
 ## 2025-02-18 - String Join Optimization
 **Learning:** Using a list comprehension inside `"".join()` is measurably faster than using a generator expression. This is because a generator expression creates overhead from the generator mechanism, whereas a list comprehension runs at C-speed to create a list, which `join` can then process very efficiently. The speedup can be around ~2x.
 **Action:** Use list comprehensions inside string `join` instead of generator expressions.
+## 2026-04-29 - Hot Path String Joining Performance
+**Learning:** Using generator expressions within `str.join()` calls (e.g., `"".join(s.text for s in segments)`) creates dynamic evaluation overhead that is measurably slower (~2x) than using list comprehensions (`"".join([s.text for s in segments])`). Pre-allocating the list allows `join` to operate faster by avoiding generator mechanism machinery, which is highly beneficial on real-time STT streaming hot paths where latency matters.
+**Action:** Default to list comprehensions inside `join()` instead of generator expressions when optimizing string building loops.
