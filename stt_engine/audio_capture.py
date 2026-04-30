@@ -49,7 +49,12 @@ class AudioRecorder:
                 while self.is_recording:
                     data = recorder.record(numframes=self.blocksize)
                     # Convert to flattened mono, ensure float32
-                    mono_data = data.mean(axis=1).astype(np.float32)
+                    # Bolt: If the audio is already mono (1 channel), avoid the slow
+                    # O(N) calculation of `mean(axis=1)` and use an O(1) slice instead.
+                    if data.shape[1] == 1:
+                        mono_data = data[:, 0].astype(np.float32)
+                    else:
+                        mono_data = data.mean(axis=1).astype(np.float32)
                     
                     # We no longer apply arbitrary linear gain here.
                     # Normalization is now handled inside VAD and STT directly.
