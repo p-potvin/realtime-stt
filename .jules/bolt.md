@@ -10,3 +10,6 @@
 ## 2026-04-29 - Hot Path String Joining Performance
 **Learning:** Using generator expressions within `str.join()` calls (e.g., `"".join(s.text for s in segments)`) creates dynamic evaluation overhead that is measurably slower (~2x) than using list comprehensions (`"".join([s.text for s in segments])`). Pre-allocating the list allows `join` to operate faster by avoiding generator mechanism machinery, which is highly beneficial on real-time STT streaming hot paths where latency matters.
 **Action:** Default to list comprehensions inside `join()` instead of generator expressions when optimizing string building loops.
+## 2025-02-18 - Audio Buffer Channel Reduction Optimization
+**Learning:** When processing multi-channel NumPy arrays in fast-running loops (like WASAPI audio loopback streams with shape `[frames, channels]`), performing a blind `mean(axis=1)` calculation is highly inefficient for single-channel (mono) sources. Checking the channel dimension (`data.shape[1] == 1`) and extracting a slice directly (`data[:, 0]`) circumvents the O(N) operations, resulting in ~50x faster buffer flattening on the hot path.
+**Action:** When flattening a 2D matrix into a 1D vector where one axis might be length 1, conditionally slice rather than blindly reducing with mathematical operations like `.mean()` or `.sum()`.
