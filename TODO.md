@@ -14,3 +14,12 @@
 - [x] WASAPI loopback support out-of-the-box (via `soundcard`).
 - [x] Multi-segment handling optimization (Near real-time algorithms, VAD slicing).
 - [x] Audio Volume Normalization (Fix ~0.25 peaking from 2.5x gain threshold, use dynamic peak AGC).
+- [x] Fix Bugs: Remove duplicate `import secrets` and fix the overridden `max_silence_chunks` variable.
+- [x] Fix Bugs: Replace `time.sleep(0.5)` with `threading.Event` in `processing_loop` for immediate resumption.
+- [x] Concurrency: Refactor `transcription_loop` to use `queue.Queue` blocking `get()` instead of semaphore busy-wait.
+- [x] Concurrency: Implement graceful thread cleanup using `.join()` and `self.is_running = False` in UI closeEvent.
+- [x] Architecture: Extract `FasterWhisperWrapper` and `ParakeetV3Wrapper` instantiations to strategy-pattern Engine classes.
+- [x] Architecture: Extract hardcoded magic numbers into class constants.
+- [x] Architecture: Decouple GUI logic (`QApplication`, tray) from core audio logic (`RealTimeSTTApp`).
+- [x] Performance: Optimize audio chunk accumulation by avoiding `np.concatenate` where possible.
+- [x] Performance: Optimize lazy-loading logic to eliminate per-inference type checks (`isinstance(self.sttEngine)`).

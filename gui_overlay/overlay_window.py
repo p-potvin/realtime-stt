@@ -127,7 +127,7 @@ class SubtitleWindow(QMainWindow):
         self._dragging = False
         event.accept()
 
-    @Slot(str)
+    @Slot()
     def _clear_caption(self):
         """Clears the subtitles when silence duration is reached."""
         self.caption_label.setText("")
@@ -139,24 +139,23 @@ class SubtitleWindow(QMainWindow):
 
     def update_caption(self, text: str, label_idx: int = 0):
         # Rolling 2-line display: previous sentence on top, current on bottom.
-        # This softens the transition between sentences by giving the reader context.
+        # This fixes the visual 'duplication' by ensuring a stable top-to-bottom flow.
+        if not text.strip():
+            return
+
+        if text == self._prev_text:
+            return
+
         display = f"{self._prev_text}\n{text}" if self._prev_text else text
-        if label_idx == 0:
-            self.caption_label.setText(display)
-            self.caption_label_2.setText("")
-        else:
-            self.caption_label_2.setText(text)
+        self.caption_label.setText(display)
+        self.caption_label_2.setText("") # Clear second label to avoid confusion
         
         self._prev_text = text
         self.caption_label.adjustSize()
-        self.caption_label_2.adjustSize()
         self.adjustSize()
 
         # Restart the silence timer
-        if text.strip():
-            self.clear_timer.start(3000)
-        else:
-            self.clear_timer.stop()
+        self.clear_timer.start(3000)
 
     def apply_styles(self, styles: dict):
         # Explicit QFont assignment fixes stylesheet bounding box truncation bugs (especially 12pt bold)

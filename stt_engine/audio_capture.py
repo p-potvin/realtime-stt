@@ -64,18 +64,17 @@ class AudioRecorder:
                     if not hasattr(self, '_log_counter'): self._log_counter = 0
                     self._log_counter += 1
                     
-                    # Software gain: boost genuinely quiet (but non-silent) signals to give VAD
-                    # and STT a healthy amplitude. The lower bound (0.005) prevents the hardware
-                    # noise floor from being amplified; the upper bound (0.15) avoids clipping
-                    # audio that is already reasonably loud.
-                    if 0.005 <= peak < 0.15:
-                        # Bolt: Use in-place multiplication to prevent memory churn and redundant allocations
-                        mono_data *= 2.5
-                        # Avoid O(N) recalculation since the array was uniformly multiplied by a positive scalar
-                        peak *= 2.5
+                    # Software AGC: Normalize quiet signals to a target level for VAD/STT.
+                    # We target a peak of ~0.4 to give the models a clear but unclipped signal.
+                    TARGET_PEAK = 0.4
+                    if peak > 0.001:
+                        gain = min(10.0, TARGET_PEAK / max(peak, 0.01))
+                        if gain > 1.0:
+                            mono_data *= gain
+                            peak *= gain
 
                     if self._log_counter % 100 == 0:
-                        self.logger.debug(f"Audio Flow Check - Chunk: {self._log_counter} | Peak Volume: {peak:.5f}")
+                        self.logger.debug(f"Audio Flow - Peak: {peak:.5f} | Gain Applied: {gain:.2f}x")
 
                     self.audio_queue.put(mono_data)
         except Exception as e:
@@ -86,6 +85,14 @@ class AudioRecorder:
         """Starts the audio stream using soundcard loopback."""
         if self.is_recording:
             return
+        
+        # Clear any stale audio from previous sessions
+        while not self.audio_queue.empty():
+            try:
+                self.audio_queue.get_nowait()
+            except queue.Empty:
+                break
+                
         self.is_recording = True
         self._thread = threading.Thread(target=self._record_loop, daemon=True)
         self._thread.start()
