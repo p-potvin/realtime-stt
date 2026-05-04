@@ -13,3 +13,6 @@
 ## 2025-02-18 - Audio Buffer Channel Reduction Optimization
 **Learning:** When processing multi-channel NumPy arrays in fast-running loops (like WASAPI audio loopback streams with shape `[frames, channels]`), performing a blind `mean(axis=1)` calculation is highly inefficient for single-channel (mono) sources. Checking the channel dimension (`data.shape[1] == 1`) and extracting a slice directly (`data[:, 0]`) circumvents the O(N) operations, resulting in ~50x faster buffer flattening on the hot path.
 **Action:** When flattening a 2D matrix into a 1D vector where one axis might be length 1, conditionally slice rather than blindly reducing with mathematical operations like `.mean()` or `.sum()`.
+## 2025-02-18 - Maintain O(1) Running Counters in Hot Paths
+**Learning:** In high-frequency event loops like the audio capturing loop, dynamically recalculating the length of an accumulating buffer using O(N) operations like `len(buffer) // chunk.nbytes` adds measurable CPU overhead.
+**Action:** Always maintain an O(1) running counter variable for accumulated buffer limits or chunk counts rather than dynamically recalculating it on every loop iteration.

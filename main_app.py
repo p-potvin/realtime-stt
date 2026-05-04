@@ -93,6 +93,7 @@ class RealTimeSTTApp:
         self.is_running = False
         self.is_processing = True # Toggle to pause audio processing when subtitles hidden
         self.speech_buffer = bytearray()
+        self.speech_buffer_chunks = 0
         self.chunk_index = 0
         self._proc_counter = 0
 
@@ -118,6 +119,7 @@ class RealTimeSTTApp:
         """
         self.logger.info("Processing Loop Thread started.")
         self.speech_buffer = bytearray()
+        self.speech_buffer_chunks = 0
         self._proc_counter = 0
         silence_counter = 0
         max_silence_chunks = int(self.SILENCE_MULTIPLIER * self.MAX_BUFFER_SIZE)
@@ -146,7 +148,7 @@ class RealTimeSTTApp:
 
             if self._proc_counter % self.VAD_LOG_INTERVAL == 0:
                 peak_val = np.max(np.abs(chunk))
-                self.logger.info(f"VAD Check - Prob: {speech_prob:.4f} (Threshold: {self.VAD_THRESHOLD}) | Peak: {peak_val:.4f} | Buffer: {len(self.speech_buffer) // chunk.nbytes}")
+                self.logger.info(f"VAD Check - Prob: {speech_prob:.4f} (Threshold: {self.VAD_THRESHOLD}) | Peak: {peak_val:.4f} | Buffer: {self.speech_buffer_chunks}")
 
             is_in_speech = bool(self.speech_buffer)
 
@@ -154,27 +156,29 @@ class RealTimeSTTApp:
                 if not is_in_speech:
                     self.logger.info(f"Speech Activity Detected (Prob: {speech_prob:.4f}) - Starting buffer accumulation.")
                 self.speech_buffer.extend(chunk.tobytes())
+                self.speech_buffer_chunks += 1
                 silence_counter = 0
 
-                chunk_count = len(self.speech_buffer) // chunk.nbytes
-                if chunk_count >= self.MAX_BUFFER_SIZE:
+                if self.speech_buffer_chunks >= self.MAX_BUFFER_SIZE:
                     if self.speech_buffer:
                         self.logger.debug(f"Max buffer limit reached ({self.MAX_BUFFER_SIZE}). Triggering transcription.")
                         self._queue_transcription(np.frombuffer(self.speech_buffer, dtype=chunk.dtype))
                     # Keep 1-chunk overlap for context continuity
                     self.speech_buffer = bytearray(chunk.tobytes())
+                    self.speech_buffer_chunks = 1
             else:
                 if is_in_speech:
                     self.speech_buffer.extend(chunk.tobytes())
+                    self.speech_buffer_chunks += 1
                 silence_counter += 1
 
                 if silence_counter >= max_silence_chunks:
-                    chunk_count = len(self.speech_buffer) // chunk.nbytes
-                    if self.speech_buffer and chunk_count >= self.MIN_SPEECH_TRIGGER:
+                    if self.speech_buffer and self.speech_buffer_chunks >= self.MIN_SPEECH_TRIGGER:
                         self._queue_transcription(np.frombuffer(self.speech_buffer, dtype=chunk.dtype))
                     else:
-                        self.logger.debug(f"Discarding audio buffer too small ({chunk_count} chunks) under min threshold.")
+                        self.logger.debug(f"Discarding audio buffer too small ({self.speech_buffer_chunks} chunks) under min threshold.")
                     self.speech_buffer = bytearray()
+                    self.speech_buffer_chunks = 0
                     silence_counter = 0
 
     def start(self):
