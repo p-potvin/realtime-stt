@@ -69,7 +69,7 @@ class SileroVADWrapper:
             if audio_chunk.dtype != np.float32:
                 audio_chunk = audio_chunk.astype(np.float32)
 
-            peak = float(np.max(np.abs(audio_chunk)))
+            peak = float(np.abs(audio_chunk).max())  # Bolt: Optimized from np.max(np.abs(audio_chunk))
 
             # Absolute silence gate: values this small are hardware noise floor, not speech.
             # Avoids feeding a massively-scaled noise signal into the stateful VAD model.

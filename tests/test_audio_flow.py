@@ -1,10 +1,25 @@
 import unittest
 import numpy as np
 import queue
+import unittest.mock
+import types
+import sys
+
+# Pre-mock soundcard before importing modules that depend on it
+sys.modules['soundcard'] = types.SimpleNamespace()
+
 from stt_engine.audio_capture import AudioRecorder
 from stt_engine.vad_logic import SileroVADWrapper
 
 class TestAudioFlow(unittest.TestCase):
+    def setUp(self):
+        # Mock soundcard to prevent pulse audio assertion errors in headless mode
+        self.sc_patcher = unittest.mock.patch.dict('sys.modules', {'soundcard': types.SimpleNamespace()})
+        self.sc_patcher.start()
+
+    def tearDown(self):
+        self.sc_patcher.stop()
+
     def test_recorder_initialization(self):
         recorder = AudioRecorder(samplerate=16000, blocksize=512)
         self.assertEqual(recorder.samplerate, 16000)
@@ -22,13 +37,13 @@ class TestAudioFlow(unittest.TestCase):
         recorder = AudioRecorder()
         # Mocking a quiet chunk
         quiet_chunk = np.ones(512, dtype=np.float32) * 0.05
-        peak = np.max(np.abs(quiet_chunk))
+        peak = float(np.abs(quiet_chunk).max())  # Bolt: Optimized from np.max(np.abs(quiet_chunk))
         
         # Manually apply AGC logic to test
         TARGET_PEAK = 0.4
         gain = min(10.0, TARGET_PEAK / max(peak, 0.01))
         scaled = quiet_chunk * gain
-        new_peak = np.max(np.abs(scaled))
+        new_peak = float(np.abs(scaled).max())  # Bolt: Optimized from np.max(np.abs(scaled))
         
         self.assertGreater(new_peak, peak)
         self.assertLessEqual(new_peak, TARGET_PEAK + 0.01)

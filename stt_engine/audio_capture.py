@@ -58,7 +58,7 @@ class AudioRecorder:
                     
                     # We no longer apply arbitrary linear gain here.
                     # Normalization is now handled inside VAD and STT directly.
-                    peak = np.max(np.abs(mono_data))
+                    peak = np.abs(mono_data).max()  # Bolt: Optimized from np.max(np.abs(mono_data))
 
                     # Log peak volume every 100 chunks (~3 seconds) to verify audio flow
                     if not hasattr(self, '_log_counter'): self._log_counter = 0

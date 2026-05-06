@@ -5,8 +5,6 @@ import unittest
 from unittest.mock import MagicMock
 
 # Stub dependencies
-sys.modules['numpy'] = MagicMock()
-sys.modules['torch'] = MagicMock()
 sys.modules['soundcard'] = types.SimpleNamespace()
 
 import numpy as np

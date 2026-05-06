@@ -147,7 +147,7 @@ class RealTimeSTTApp:
                 speech_prob = self.vad.get_speech_prob(chunk)
 
             if self._proc_counter % self.VAD_LOG_INTERVAL == 0:
-                peak_val = np.max(np.abs(chunk))
+                peak_val = np.abs(chunk).max()  # Bolt: Optimized from np.max(np.abs(chunk))
                 self.logger.info(f"VAD Check - Prob: {speech_prob:.4f} (Threshold: {self.VAD_THRESHOLD}) | Peak: {peak_val:.4f} | Buffer: {self.speech_buffer_chunks}")
 
             is_in_speech = bool(self.speech_buffer)
