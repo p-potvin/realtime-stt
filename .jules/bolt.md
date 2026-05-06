@@ -16,3 +16,6 @@
 ## 2025-02-18 - Maintain O(1) Running Counters in Hot Paths
 **Learning:** In high-frequency event loops like the audio capturing loop, dynamically recalculating the length of an accumulating buffer using O(N) operations like `len(buffer) // chunk.nbytes` adds measurable CPU overhead.
 **Action:** Always maintain an O(1) running counter variable for accumulated buffer limits or chunk counts rather than dynamically recalculating it on every loop iteration.
+## 2025-05-06 - NumPy Array Accumulation Overhead
+**Learning:** In high-frequency hot paths, continuously serializing NumPy arrays to bytes using `.tobytes()` and appending them to a `bytearray` (only to deserialize them later via `np.frombuffer`) is highly inefficient. Accumulating NumPy arrays directly in a standard Python list and using `np.concatenate(list)` when processing is ~5x faster because it avoids continuous O(N) serialization/deserialization overhead.
+**Action:** When accumulating NumPy arrays in memory for batch processing, store the raw array references in a standard Python list and use `np.concatenate` instead of serializing to a byte buffer.
