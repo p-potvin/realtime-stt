@@ -1,32 +1,28 @@
 import unittest
+import sys
+import types
 import numpy as np
 import queue
-import unittest.mock
-import types
-import sys
-
-# Pre-mock soundcard before importing modules that depend on it
-sys.modules['soundcard'] = types.SimpleNamespace()
-
-from stt_engine.audio_capture import AudioRecorder
-from stt_engine.vad_logic import SileroVADWrapper
+from unittest.mock import patch
 
 class TestAudioFlow(unittest.TestCase):
     def setUp(self):
-        # Mock soundcard to prevent pulse audio assertion errors in headless mode
-        self.sc_patcher = unittest.mock.patch.dict('sys.modules', {'soundcard': types.SimpleNamespace()})
-        self.sc_patcher.start()
+        # Mock soundcard locally to avoid virtual audio cables during headless CI/CD
+        self.patcher = patch.dict('sys.modules', {'soundcard': types.SimpleNamespace()})
+        self.patcher.start()
 
     def tearDown(self):
-        self.sc_patcher.stop()
+        self.patcher.stop()
 
     def test_recorder_initialization(self):
+        from stt_engine.audio_capture import AudioRecorder
         recorder = AudioRecorder(samplerate=16000, blocksize=512)
         self.assertEqual(recorder.samplerate, 16000)
         self.assertEqual(recorder.blocksize, 512)
         self.assertFalse(recorder.is_recording)
 
     def test_vad_processing(self):
+        from stt_engine.vad_logic import SileroVADWrapper
         vad = SileroVADWrapper(bypass=True) # Bypass for CI/CD speed
         dummy_audio = np.zeros(512, dtype=np.float32)
         # Should be 0.0 for zeros
@@ -34,6 +30,7 @@ class TestAudioFlow(unittest.TestCase):
         self.assertEqual(prob, 0.0)
 
     def test_agc_scaling(self):
+        from stt_engine.audio_capture import AudioRecorder
         recorder = AudioRecorder()
         # Mocking a quiet chunk
         quiet_chunk = np.ones(512, dtype=np.float32) * 0.05
