@@ -125,4 +125,3 @@ if __name__ == "__main__":
     silent_audio = np.zeros(16000, dtype=np.float32)
     print(f"Silent speech probability: {vad.get_speech_prob(silent_audio)}")
     print(f"Is silent speech detected? {vad.is_speech(silent_audio)}")
-

@@ -34,13 +34,13 @@ class TestAudioFlow(unittest.TestCase):
         recorder = AudioRecorder()
         # Mocking a quiet chunk
         quiet_chunk = np.ones(512, dtype=np.float32) * 0.05
-        peak = np.abs(quiet_chunk).max()
+        peak = float(np.abs(quiet_chunk).max())  # Bolt: Optimized from np.max(np.abs(quiet_chunk))
         
         # Manually apply AGC logic to test
         TARGET_PEAK = 0.4
         gain = min(10.0, TARGET_PEAK / max(peak, 0.01))
         scaled = quiet_chunk * gain
-        new_peak = np.abs(scaled).max()
+        new_peak = float(np.abs(scaled).max())  # Bolt: Optimized from np.max(np.abs(scaled))
         
         self.assertGreater(new_peak, peak)
         self.assertLessEqual(new_peak, TARGET_PEAK + 0.01)
