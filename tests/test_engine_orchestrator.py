@@ -2,7 +2,6 @@ import logging
 import sys
 import types
 import unittest
-from unittest.mock import MagicMock
 
 # Stub dependencies
 sys.modules['soundcard'] = types.SimpleNamespace()
