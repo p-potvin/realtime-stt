@@ -22,3 +22,6 @@
 ## 2025-05-06 - NumPy Array Accumulation Overhead
 **Learning:** In high-frequency hot paths, continuously serializing NumPy arrays to bytes using `.tobytes()` and appending them to a `bytearray` (only to deserialize them later via `np.frombuffer`) is highly inefficient. Accumulating NumPy arrays directly in a standard Python list and using `np.concatenate(list)` when processing is ~5x faster because it avoids continuous O(N) serialization/deserialization overhead.
 **Action:** When accumulating NumPy arrays in memory for batch processing, store the raw array references in a standard Python list and use `np.concatenate` instead of serializing to a byte buffer.
+## 2025-05-18 - NumPy Mono Channel Audio Buffer Flattening
+**Learning:** When stripping the channel dimension from a mono-channel audio buffer returned from `soundcard` (e.g., shape `[512, 1]` to `[512]`), using `data.ravel().astype(np.float32, copy=False)` is approximately 3x faster than array slicing `data[:, 0].astype(np.float32)`. `ravel()` takes advantage of numpy's low-overhead view reshaping to bypass the copy overhead introduced by explicit indexing and `.astype(copy=True)`.
+**Action:** Use `.ravel().astype(..., copy=False)` instead of slicing when flattening single-channel multi-dimensional audio buffers in hot paths.

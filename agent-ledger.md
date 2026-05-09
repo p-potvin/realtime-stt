@@ -9,3 +9,8 @@
 **Goal:** Optimize theme retrieval performance
 **Decision:** Replaced O(N) list iteration in `get_theme` and `get_theme_by_name` with O(1) dictionary lookups using a name-to-theme mapping initialized during constructor.
 **Reason:** In applications with frequent theme switching or UI component initialization, repeated O(N) lookups introduce unnecessary latency. Dictionary lookups provide a significant speedup (~2.7x in microbenchmarks) with negligible memory overhead.
+
+## 2026-05-08: Code Cleanup in STT Engine Orchestrator
+**Goal:** Improve maintainability and reduce clutter.
+**Decision:** Removed unused `import queue` and a redundant `else: pass` block with "not implemented" comments in `stt_engine/engine_orchestrator.py`.
+**Reason:** Unused imports and dead code/comments reduce readability and increase noise. Following the "No Dead Code" policy from the project manifest.
