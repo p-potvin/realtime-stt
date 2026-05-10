@@ -2,6 +2,7 @@ import logging
 import sys
 import os
 import json
+import re
 from PySide6.QtWidgets import (
     QApplication, QGraphicsDropShadowEffect, QMainWindow, QLabel, QVBoxLayout, QWidget, QCheckBox, 
     QComboBox, QHBoxLayout, QFrame, QGridLayout, QPushButton, QSizePolicy,
@@ -258,23 +259,53 @@ class SettingsWindow(QMainWindow):
         self._init_ui()
         self._emit_current_styles()
 
+    def _get_validated(self, value, expected_type, default_value, min_val=None, max_val=None, regex_pattern=None):
+        """Helper to validate data types, bounds, and regex constraints."""
+        if value is None:
+            return default_value
+        if not isinstance(value, expected_type):
+            return default_value
+
+        if expected_type in (int, float):
+            if min_val is not None and value < min_val:
+                return default_value
+            if max_val is not None and value > max_val:
+                return default_value
+
+        if expected_type == str and regex_pattern:
+            if not re.match(regex_pattern, value):
+                return default_value
+
+        return value
+
     def _load_config(self):
         if os.path.exists(self.config_path):
             try:
                 with open(self.config_path, "r") as f:
                     data = json.load(f)
-                self.current_theme_idx = data.get("theme_idx", self.current_theme_idx)
-                self.font_family = data.get("font_family", self.font_family)
-                self.font_size = data.get("font_size", self.font_size)
-                self.font_weight = data.get("font_weight", self.font_weight)
-                self.font_italic = data.get("font_italic", self.font_italic)
-                self.font_underline = data.get("font_underline", self.font_underline)
-                self.text_color = data.get("text_color", self.text_color)
-                self.outline_color = data.get("outline_color", self.outline_color)
-                self.outline_width = data.get("outline_width", self.outline_width)
-                self.show_subtitle_bg = data.get("show_subtitle_bg", self.show_subtitle_bg)
-                self.skip_vad = data.get("skip_vad", self.skip_vad)
-                self.subtitles_visible = data.get("subtitles_visible", self.subtitles_visible)
+
+                # Validate and load settings
+                self.current_theme_idx = self._get_validated(data.get("theme_idx"), int, self.current_theme_idx, min_val=1, max_val=10)
+
+                # Using a generic alphanumeric + space regex for font family to prevent injection
+                self.font_family = self._get_validated(data.get("font_family"), str, self.font_family, regex_pattern=r"^[\w\s\-]+$")
+
+                self.font_size = self._get_validated(data.get("font_size"), int, self.font_size, min_val=8, max_val=120)
+                self.font_weight = self._get_validated(data.get("font_weight"), int, self.font_weight, min_val=100, max_val=900)
+                self.font_italic = self._get_validated(data.get("font_italic"), bool, self.font_italic)
+                self.font_underline = self._get_validated(data.get("font_underline"), bool, self.font_underline)
+
+                # Regex for #RRGGBB colors
+                hex_color_pattern = r"^#[0-9a-fA-F]{6}$"
+                self.text_color = self._get_validated(data.get("text_color"), str, self.text_color, regex_pattern=hex_color_pattern)
+                self.outline_color = self._get_validated(data.get("outline_color"), str, self.outline_color, regex_pattern=hex_color_pattern)
+
+                self.outline_width = self._get_validated(data.get("outline_width"), int, self.outline_width, min_val=0, max_val=30)
+
+                self.show_subtitle_bg = self._get_validated(data.get("show_subtitle_bg"), bool, self.show_subtitle_bg)
+                self.skip_vad = self._get_validated(data.get("skip_vad"), bool, self.skip_vad)
+                self.subtitles_visible = self._get_validated(data.get("subtitles_visible"), bool, self.subtitles_visible)
+
                 # Engine is forced to Whisper in UI, ignore active_engine from config
                 self.active_engine = "Whisper"
             except Exception as e:
@@ -354,6 +385,9 @@ class SettingsWindow(QMainWindow):
         # Theme
         self.control_layout.addWidget(QLabel("Theme:"), row, 0)
         self.theme_combo = QComboBox()
+        self.theme_combo.setToolTip("Theme Selection")
+        self.theme_combo.setAccessibleName("Theme Selection")
+        # Make combo boxes act more like web dropdowns
         self.theme_combo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         for t in self.theme_manager.get_themes():
             self.theme_combo.addItem(t.name)
@@ -393,6 +427,8 @@ class SettingsWindow(QMainWindow):
         # Font settings
         self.control_layout.addWidget(QLabel("Font:"), row, 0)
         self.font_combo = QFontComboBox()
+        self.font_combo.setToolTip("Font Family")
+        self.font_combo.setAccessibleName("Font Family")
         self.font_combo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.font_combo.setCurrentFont(QFont(self.font_family))
         self.font_combo.currentFontChanged.connect(self._update_font_family)
@@ -403,12 +439,16 @@ class SettingsWindow(QMainWindow):
         
         style_layout = QHBoxLayout()
         self.size_spin = QSpinBox()
+        self.size_spin.setToolTip("Font Size")
+        self.size_spin.setAccessibleName("Font Size")
         self.size_spin.setRange(8, 120)
         self.size_spin.setValue(self.font_size)
         self.size_spin.valueChanged.connect(self._update_font_size)
         style_layout.addWidget(self.size_spin)
 
         self.bold_btn = QPushButton("B")
+        self.bold_btn.setToolTip("Bold Text")
+        self.bold_btn.setAccessibleName("Bold Text")
         self.bold_btn.setCheckable(True)
         self.bold_btn.setChecked(self.font_weight > 400)
         f_bold = QFont(); f_bold.setBold(True); self.bold_btn.setFont(f_bold)
@@ -416,6 +456,8 @@ class SettingsWindow(QMainWindow):
         style_layout.addWidget(self.bold_btn)
 
         self.italic_btn = QPushButton("I")
+        self.italic_btn.setToolTip("Italic Text")
+        self.italic_btn.setAccessibleName("Italic Text")
         self.italic_btn.setCheckable(True)
         self.italic_btn.setChecked(self.font_italic)
         f_italic = QFont(); f_italic.setItalic(True); self.italic_btn.setFont(f_italic)
@@ -423,6 +465,8 @@ class SettingsWindow(QMainWindow):
         style_layout.addWidget(self.italic_btn)
 
         self.under_btn = QPushButton("U")
+        self.under_btn.setToolTip("Underline Text")
+        self.under_btn.setAccessibleName("Underline Text")
         self.under_btn.setCheckable(True)
         self.under_btn.setChecked(self.font_underline)
         f_under = QFont(); f_under.setUnderline(True); self.under_btn.setFont(f_under)
@@ -430,6 +474,8 @@ class SettingsWindow(QMainWindow):
         style_layout.addWidget(self.under_btn)
 
         self.text_color_btn = QPushButton("A")
+        self.text_color_btn.setToolTip("Text Color")
+        self.text_color_btn.setAccessibleName("Text Color")
         f_color = QFont(); f_color.setBold(True); self.text_color_btn.setFont(f_color)
         self.text_color_btn.clicked.connect(self._pick_text_color)
         style_layout.addWidget(self.text_color_btn)
@@ -442,10 +488,14 @@ class SettingsWindow(QMainWindow):
         shadow_layout = QHBoxLayout()
         
         self.outline_color_btn = QPushButton("Color")
+        self.outline_color_btn.setToolTip("Outline Color")
+        self.outline_color_btn.setAccessibleName("Outline Color")
         self.outline_color_btn.clicked.connect(self._pick_outline_color)
         shadow_layout.addWidget(self.outline_color_btn)
 
         self.outline_width_spin = QSpinBox()
+        self.outline_width_spin.setToolTip("Outline Width")
+        self.outline_width_spin.setAccessibleName("Outline Width")
         self.outline_width_spin.setRange(0, 30)
         self.outline_width_spin.setValue(self.outline_width)
         self.outline_width_spin.setPrefix("Blur width: ")
