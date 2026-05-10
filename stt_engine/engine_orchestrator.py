@@ -6,7 +6,7 @@ from typing import Optional, Callable
 
 from stt_engine.audio_capture import AudioRecorder
 from stt_engine.vad_logic import SileroVADWrapper
-from stt_engine.faster_whisper_wrapper import FasterWhisperWrapper
+from stt_engine.fastconformer_wrapper import FastConformerWrapper
 
 class RealtimeSTTEngine:
     """
@@ -39,11 +39,7 @@ class RealtimeSTTEngine:
         # Components
         self.recorder = AudioRecorder(samplerate=samplerate)
         self.vad = SileroVADWrapper(samplerate=samplerate, device=device)
-        self.stt = FasterWhisperWrapper(
-            model_size=model_size, 
-            device=device, 
-            compute_type=compute_type
-        )
+        self.stt = FastConformerWrapper()
         
         # State
         self.running = False
@@ -113,12 +109,7 @@ class RealtimeSTTEngine:
             try:
                 start_time = time.time()
                 # Transcribe the concatenated float32 array
-                segments, info = self.stt.transcribe(full_audio, vad_filter=False)
-                
-                # Join segments into a single string
-                # Bolt: Using a list comprehension inside join() avoids the overhead of a
-                # generator expression and results in a ~2x speedup.
-                full_text = " ".join([seg.text for seg in segments]).strip()
+                full_text = self.stt.transcribe(full_audio)
                 
                 duration = time.time() - start_time
                 if full_text:

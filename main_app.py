@@ -6,6 +6,8 @@ import sys
 import os
 import time
 import threading
+from venv import logger
+from faster_whisper import WhisperModel
 import numpy as np
 import logging
 import random
@@ -85,7 +87,7 @@ class RealTimeSTTApp:
         self.ENGINE_NVIDIA = "nvidia"
         self.ENGINE_WHISPER = "whisper"
         
-        self.sttEngine = None
+        #self.sttEngine = type[WhisperStrategy] | type[ParakeetStrategy] 
         
         # We will use soundcard's default speaker loopback
         self.recorder = AudioRecorder(device_name=None, samplerate=16000, blocksize=512)
@@ -306,8 +308,8 @@ class RealTimeSTTApp:
         self.recorder.logger.setLevel(level)
         
         if self.sttEngine and hasattr(self.sttEngine, 'logger'):
-            self.sttEngine.logger.setLevel(level)
-            
+            logger_attr = getattr(self.sttEngine, 'logger')
+            logger_attr.setLevel(level)
         self.logger.info(f"Global Debug Logging: {'ENABLED' if state else 'DISABLED'}")
 
     def on_settings_changed(self, settings_dict: dict):

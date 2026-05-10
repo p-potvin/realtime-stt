@@ -22,14 +22,14 @@ class ParakeetWorker:
     """
     Dedicated worker for running NVIDIA Parakeet V3 / Canary V2 models.
     """
-    def __init__(self, model_name: str = "nvidia/canary-1b"):
-        import nemo.collections.asr as nemo_asr
+    def __init__(self, model_name: str = "nvidia/parakeet-tdt-0.6b-v3"):
+        import nemo.collections.asr as nemo_asr  # type: ignore
         self.logger = logging.getLogger("vaultwares.parakeet_worker")
         self.logger.info(f"Initializing ParakeetWorker with model: {model_name} on {DEVICE}")
         
-        # Load the model (Canary-1B supports EN, DE, ES, FR ASR and Translation)
+        # Load the model directly through general ASR wrapper
         try:
-            self.model = nemo_asr.models.EncDecMultiTaskModel.from_pretrained(model_name=model_name)
+            self.model = nemo_asr.models.ASRModel.from_pretrained(model_name=model_name)
             self.model = self.model.to(DEVICE)
             self.model.eval()
             self.logger.info("Parakeet/Canary model loaded successfully.")
@@ -45,41 +45,35 @@ class ParakeetWorker:
             return ""
 
         try:
-            # NeMo models often expect a manifest or a file path, 
-            # but we can pass raw audio tensors to some methods.
-            # Using the transcribe method with a list of raw audio
             with torch.no_grad():
-                # Wrap audio in a list
-                # Note: Canary-1B MultiTaskModel expects specific task/lang tags
-                # For basic ASR, source_lang == target_lang
-                # We use the internal _transcribe or similar if available for raw tensors
-                
-                # Simple implementation: write to a temporary buffer or use NeMo's streaming API
-                # For this wrapper, we use the standard transcribe interface
-                # which handles the internal preprocessing
-                
-                # Bolt: Removed redundant `audio_tensor = torch.from_numpy(audio_data).to(DEVICE)`
-                # because the NeMo model's `transcribe` method expects paths or NumPy arrays natively
-                # and handles its own PyTorch conversions. Skipping this avoids an unused allocation
-                # and a blocking device transfer on the hot path.
-                
-                # Canary-1B specific: requires taskname, source_lang, target_lang
-                # We'll use the model's high-level transcribe method which can take audio paths
-                # To avoid disk IO, we'd ideally use the frame-based forward pass, 
-                # but for simplicity in this V1 wrapper, we'll use a memory-efficient path.
-                
-                # For now, let's use the standard transcribe which is robust
-                # (Optimization: use NeMo's Streaming ASR buffers for V2)
-                
-                # Note: Parakeet-TDT (v3) is significantly faster for this.
-                results = self.model.transcribe(
-                    [audio_data], 
-                    batch_size=1,
-                    verbose=False
-                )
-                
-                if results and len(results) > 0:
-                    return results[0].text if hasattr(results[0], 'text') else str(results[0])
+                # Direct Tensor Inference: Bypass File System completely
+                audio_tensor = torch.from_numpy(audio_data).unsqueeze(0).to(DEVICE)
+                audio_len = torch.tensor([audio_tensor.shape[1]], dtype=torch.long).to(DEVICE)
+
+                # Send directly to the encoder/forward block
+                forward_out = self.model.forward(input_signal=audio_tensor, input_signal_length=audio_len)
+
+                # Differentiate between CTC and RNNT architectures
+                if hasattr(self.model, 'decoding'):
+                    if hasattr(self.model.decoding, 'ctc_decoder_predictions_tensor'):
+                        # CTC Decode
+                        greedy_predictions = forward_out[2]
+                        encoded_len = forward_out[1]
+                        hypotheses, _ = self.model.decoding.ctc_decoder_predictions_tensor(
+                            greedy_predictions, predictions_len=encoded_len
+                        )
+                        curr_hyp = hypotheses[0][0] if isinstance(hypotheses[0], list) else hypotheses[0]
+                        return curr_hyp.text if hasattr(curr_hyp, 'text') else str(curr_hyp)
+                        
+                    elif hasattr(self.model.decoding, 'rnnt_decoder_predictions_tensor'):
+                        # RNNT Decode
+                        encoder_output = forward_out[0]
+                        encoded_len = forward_out[1]
+                        hypotheses, _ = self.model.decoding.rnnt_decoder_predictions_tensor(
+                            encoder_output, encoded_len
+                        )
+                        return hypotheses[0].text if hasattr(hypotheses[0], 'text') else str(hypotheses[0])
+
                 return ""
                 
         except Exception as e:
@@ -90,7 +84,7 @@ class ParakeetV3Wrapper:
     """
     Main interface for the application to interact with Parakeet natively (no Ray).
     """
-    def __init__(self, model_name: str = "nvidia/canary-1b"):
+    def __init__(self, model_name: str = "nvidia/parakeet-tdt-0.6b-v3"):
         # Load worker directly into current thread
         self.worker = ParakeetWorker(model_name=model_name)
         self.logger = logging.getLogger("vaultwares.parakeet_wrapper")

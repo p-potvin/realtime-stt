@@ -23,3 +23,4 @@
 - [x] Architecture: Decouple GUI logic (`QApplication`, tray) from core audio logic (`RealTimeSTTApp`).
 - [x] Performance: Optimize audio chunk accumulation by avoiding `np.concatenate` where possible.
 - [x] Performance: Optimize lazy-loading logic to eliminate per-inference type checks (`isinstance(self.sttEngine)`).
+- [x] Fix VS Code warnings & typing errors in wrappers and code analysis docs.

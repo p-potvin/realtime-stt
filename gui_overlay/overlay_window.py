@@ -7,8 +7,8 @@ from PySide6.QtWidgets import (
     QComboBox, QHBoxLayout, QFrame, QGridLayout, QPushButton, QSizePolicy,
     QColorDialog, QSpinBox, QFontComboBox
 )
-from PySide6.QtCore import Qt, Signal, Slot, QPoint
-from PySide6.QtGui import QColor, QFont
+from PySide6.QtCore import QTimer, Qt, Signal, Slot, QPoint
+from PySide6.QtGui import QColor, QCursor, QFont
 from vault_themes.theme_manager import VaultThemeManager
 
 class SubtitleWindow(QMainWindow):
@@ -94,6 +94,21 @@ class SubtitleWindow(QMainWindow):
         
         self.main_layout.addWidget(self.caption_label_2)
 
+        # Tiny drag handle at top right to allow dragging when text is empty
+        self.drag_handle = QLabel()
+        self.drag_handle.setFixedSize(12, 12)
+        self.drag_handle.setStyleSheet("background-color: transparent; border: 2px solid #000000; border-radius: 6px;")
+        self.drag_handle.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
+        self.drag_handle.setCursor(QCursor(Qt.CursorShape.SizeAllCursor))
+        
+        self.top_layout = QHBoxLayout()
+        self.top_layout.setContentsMargins(0, 0, 0, 0)
+        self.top_layout.addStretch()
+        self.top_layout.addWidget(self.drag_handle)
+        
+        # Insert drag handle layout above labels
+        self.main_layout.insertLayout(0, self.top_layout)
+
         # Clear timer: 3000ms silence clearing
         self.clear_timer = QTimer(self)
         self.clear_timer.setInterval(3000)
@@ -168,7 +183,13 @@ class SubtitleWindow(QMainWindow):
 
         self.caption_label_2.setStyleSheet(f"""QLabel {{ color: {styles.get('text_color', '#00FF00')}; }}""")
         self.caption_label_2.setFont(font)
-
+        
+        # Clean refresh to apply bold/italic immediately
+        self.caption_label.style().unpolish(self.caption_label)
+        self.caption_label.style().polish(self.caption_label)
+        self.caption_label_2.style().unpolish(self.caption_label_2)
+        self.caption_label_2.style().polish(self.caption_label_2)
+        
         bg_color = styles.get("bg_color", "transparent")
         """ self.caption_label.setStyleSheet(f
             QLabel {{
@@ -182,10 +203,14 @@ class SubtitleWindow(QMainWindow):
         ) """
         
         # Update shadow
-        self.shadow.setColor(QColor(styles.get('outline_color', '#000000')))
+        outline_color = styles.get('outline_color', '#000000')
+        self.shadow.setColor(QColor(outline_color))
         self.shadow.setBlurRadius(styles.get('outline_width', 4))
-        self.shadow_2.setColor(QColor(styles.get('outline_color', '#000000')))
+        self.shadow_2.setColor(QColor(outline_color))
         self.shadow_2.setBlurRadius(styles.get('outline_width', 4))
+        
+        # Update drag handle color
+        self.drag_handle.setStyleSheet(f"background-color: transparent; border: 2px solid {outline_color}; border-radius: 6px;")
         
         # Force layout recalculation after font changes
         self.caption_label.adjustSize()
@@ -295,121 +320,144 @@ class SettingsWindow(QMainWindow):
         }
 
     def _init_ui(self):
-
+        self.setMinimumWidth(500)
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
         self.main_layout = QVBoxLayout(self.central_widget)
+        self.main_layout.setContentsMargins(20, 20, 20, 20)
+        self.main_layout.setSpacing(15)
         
+        # Logo / Header
+        self.header_layout = QHBoxLayout()
+        self.logo_label = QLabel()
+        self.logo_label.setFixedSize(32, 32)
+        self.logo_label.setScaledContents(True)
+        self.header_layout.addWidget(self.logo_label)
+        
+        self.title_label = QLabel("VaultWares STT Settings")
+        font = QFont("Segoe UI", 14)
+        font.setBold(True)
+        self.title_label.setFont(font)
+        self.header_layout.addWidget(self.title_label)
+        self.header_layout.addStretch()
+        self.main_layout.addLayout(self.header_layout)
+
+        # Control Panel Wrapper
         self.control_panel = QFrame()
-        self.control_layout = QVBoxLayout(self.control_panel)
-        self.control_layout.setSpacing(10)
+        self.control_panel.setObjectName("ControlPanel")
+        self.control_layout = QGridLayout(self.control_panel)
+        self.control_layout.setContentsMargins(15, 15, 15, 15)
+        self.control_layout.setHorizontalSpacing(15)
+        self.control_layout.setVerticalSpacing(15)
         
-        # Row 0: Visibility and Theme
-        row_0_layout = QHBoxLayout()
-        self.visibility_checkbox = QCheckBox("Show Subtitles")
-        self.visibility_checkbox.setChecked(self.subtitles_visible)
-        self.visibility_checkbox.toggled.connect(self._on_visibility_toggled)
-        row_0_layout.addWidget(self.visibility_checkbox)
-
-        self.bg_checkbox = QCheckBox("Subtitle BG")
-        self.bg_checkbox.setChecked(self.show_subtitle_bg)
-        self.bg_checkbox.toggled.connect(self._on_bg_toggled)
-        row_0_layout.addWidget(self.bg_checkbox)
-
-        row_0_layout.addWidget(QLabel("Theme:"))
+        row = 0
+        # Theme
+        self.control_layout.addWidget(QLabel("Theme:"), row, 0)
         self.theme_combo = QComboBox()
-        # Make combo boxes act more like web dropdowns
         self.theme_combo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         for t in self.theme_manager.get_themes():
             self.theme_combo.addItem(t.name)
         self.theme_combo.setCurrentIndex(self.current_theme_idx - 1)
         self.theme_combo.currentIndexChanged.connect(self._update_theme)
-        row_0_layout.addWidget(self.theme_combo)
-        row_0_layout.addStretch()
-        self.control_layout.addLayout(row_0_layout)
+        self.control_layout.addWidget(self.theme_combo, row, 1, 1, 3)
+        
+        row += 1
+        # Visibility & BG
+        self.visibility_checkbox = QCheckBox("Show Subtitles")
+        self.visibility_checkbox.setChecked(self.subtitles_visible)
+        self.visibility_checkbox.toggled.connect(self._on_visibility_toggled)
+        self.control_layout.addWidget(self.visibility_checkbox, row, 0, 1, 2)
 
-        # Row 1: Toggles
-        row_1_layout = QHBoxLayout()
+        self.bg_checkbox = QCheckBox("Subtitle Canvas")
+        self.bg_checkbox.setChecked(self.show_subtitle_bg)
+        self.bg_checkbox.toggled.connect(self._on_bg_toggled)
+        self.control_layout.addWidget(self.bg_checkbox, row, 2, 1, 2)
+
+        row += 1
+        # Adv Toggles
         self.skip_vad_checkbox = QCheckBox("Skip VAD")
         self.skip_vad_checkbox.setChecked(self.skip_vad)
         self.skip_vad_checkbox.toggled.connect(self._on_skip_vad_toggled)
-        row_1_layout.addWidget(self.skip_vad_checkbox)
+        self.control_layout.addWidget(self.skip_vad_checkbox, row, 0, 1, 1)
 
-        self.debug_checkbox = QCheckBox("Debug")
-        self.debug_checkbox.setChecked(True) # Default to true to help diagnosis
+        self.debug_checkbox = QCheckBox("Debug Logs")
+        self.debug_checkbox.setChecked(True)
         self.debug_checkbox.stateChanged.connect(self._on_debug_toggled)
-        row_1_layout.addWidget(self.debug_checkbox)
+        self.control_layout.addWidget(self.debug_checkbox, row, 1, 1, 1)
 
-        self.simulate_lag_checkbox = QCheckBox("SimLag (Test Queue)")
+        self.simulate_lag_checkbox = QCheckBox("Simulate Lag")
         self.simulate_lag_checkbox.stateChanged.connect(self._on_simulate_lag_toggled)
-        row_1_layout.addWidget(self.simulate_lag_checkbox)
-        row_1_layout.addStretch()
-        self.control_layout.addLayout(row_1_layout)
-
-        # Row 2: Font Controls
-        row_2_layout = QHBoxLayout()
-        row_2_layout.addWidget(QLabel("Font:"))
+        self.control_layout.addWidget(self.simulate_lag_checkbox, row, 2, 1, 2)
+        
+        row += 1
+        # Font settings
+        self.control_layout.addWidget(QLabel("Font:"), row, 0)
         self.font_combo = QFontComboBox()
         self.font_combo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.font_combo.setCurrentFont(QFont(self.font_family))
         self.font_combo.currentFontChanged.connect(self._update_font_family)
-        row_2_layout.addWidget(self.font_combo)
+        self.control_layout.addWidget(self.font_combo, row, 1, 1, 3)
 
+        row += 1
+        self.control_layout.addWidget(QLabel("Style:"), row, 0)
+        
+        style_layout = QHBoxLayout()
         self.size_spin = QSpinBox()
         self.size_spin.setRange(8, 120)
         self.size_spin.setValue(self.font_size)
-        self.size_spin.setMinimumWidth(60)
         self.size_spin.valueChanged.connect(self._update_font_size)
-        row_2_layout.addWidget(self.size_spin)
+        style_layout.addWidget(self.size_spin)
 
         self.bold_btn = QPushButton("B")
         self.bold_btn.setCheckable(True)
         self.bold_btn.setChecked(self.font_weight > 400)
-        self.bold_btn.setFixedWidth(30)
+        f_bold = QFont(); f_bold.setBold(True); self.bold_btn.setFont(f_bold)
         self.bold_btn.clicked.connect(self._toggle_bold)
-        row_2_layout.addWidget(self.bold_btn)
+        style_layout.addWidget(self.bold_btn)
 
         self.italic_btn = QPushButton("I")
         self.italic_btn.setCheckable(True)
-        self.italic_btn.setFixedWidth(30)
+        self.italic_btn.setChecked(self.font_italic)
+        f_italic = QFont(); f_italic.setItalic(True); self.italic_btn.setFont(f_italic)
         self.italic_btn.clicked.connect(self._toggle_italic)
-        row_2_layout.addWidget(self.italic_btn)
+        style_layout.addWidget(self.italic_btn)
 
         self.under_btn = QPushButton("U")
         self.under_btn.setCheckable(True)
-        self.under_btn.setFixedWidth(30)
+        self.under_btn.setChecked(self.font_underline)
+        f_under = QFont(); f_under.setUnderline(True); self.under_btn.setFont(f_under)
         self.under_btn.clicked.connect(self._toggle_underline)
-        row_2_layout.addWidget(self.under_btn)
+        style_layout.addWidget(self.under_btn)
 
         self.text_color_btn = QPushButton("A")
-        self.text_color_btn.setFixedWidth(30)
+        f_color = QFont(); f_color.setBold(True); self.text_color_btn.setFont(f_color)
         self.text_color_btn.clicked.connect(self._pick_text_color)
-        row_2_layout.addWidget(self.text_color_btn)
-        row_2_layout.addStretch()
-        self.control_layout.addLayout(row_2_layout)
-
-        # Row 3: Shadow / Outline Controls
-        row_3_layout = QHBoxLayout()
-        row_3_layout.addWidget(QLabel("Shadow:"))
-        self.outline_color_btn = QPushButton()
-        self.outline_color_btn.setFixedWidth(30)
+        style_layout.addWidget(self.text_color_btn)
+        
+        self.control_layout.addLayout(style_layout, row, 1, 1, 3)
+        
+        row += 1
+        # Shadow / Outline Controls
+        self.control_layout.addWidget(QLabel("Shadow:"), row, 0)
+        shadow_layout = QHBoxLayout()
+        
+        self.outline_color_btn = QPushButton("Color")
         self.outline_color_btn.clicked.connect(self._pick_outline_color)
-        row_3_layout.addWidget(self.outline_color_btn)
+        shadow_layout.addWidget(self.outline_color_btn)
 
         self.outline_width_spin = QSpinBox()
         self.outline_width_spin.setRange(0, 30)
         self.outline_width_spin.setValue(self.outline_width)
-        self.outline_width_spin.setMinimumWidth(60)
-        # Block signals temporarily to avoid double pinging on startup
+        self.outline_width_spin.setPrefix("Blur width: ")
         self.outline_width_spin.blockSignals(True)
         self.outline_width_spin.valueChanged.connect(self._update_outline_width)
         self.outline_width_spin.blockSignals(False)
+        shadow_layout.addWidget(self.outline_width_spin)
         
-        row_3_layout.addWidget(self.outline_width_spin)
-        row_3_layout.addStretch()
-        self.control_layout.addLayout(row_3_layout)
-
+        self.control_layout.addLayout(shadow_layout, row, 1, 1, 3)
+        
         self.main_layout.addWidget(self.control_panel)
+        self.main_layout.addStretch()
         self.apply_panel_style()
 
     def _emit_current_styles(self):
@@ -441,38 +489,60 @@ class SettingsWindow(QMainWindow):
         self.settings_changed_signal.emit(new_state)
 
     def apply_panel_style(self):
-        t = self.theme_manager.get_theme(self.current_theme_idx - 1)
+        t = self.theme_manager.get_theme(index=int(self.current_theme_idx) - 1)
         primary = t.primary
         accent = t.accent
+        text = getattr(t, 'text', '#FFFFFF')
+        border = getattr(t, 'border', f"{accent}22")
         is_dark = t.mode == "dark"
         widget_bg = "rgba(0, 0, 0, 40)" if is_dark else "rgba(255, 255, 255, 100)"
 
         self.setStyleSheet(f"QMainWindow {{ background-color: {primary}; }}")
+        
+        # update logo and favicon dynamically based on theme mode
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        assets_dir = os.path.join(base_dir, "vault_themes", "assets")
+        
+        logo_name = "vaultwares-minimal-gold-filled.png" if is_dark else "vaultwares-minimal-ink-filled.png"
+        icon_name = "vaultwares-favicon-gold-filled-64.png" if is_dark else "vaultwares-favicon-ink-64.png"
+        
+        from PySide6.QtGui import QIcon, QPixmap
+        pixmap_path = os.path.join(assets_dir, "logos", logo_name)
+        icon_path = os.path.join(assets_dir, "favicons", icon_name)
+
+        if os.path.exists(pixmap_path):
+            self.logo_label.setPixmap(QPixmap(pixmap_path))
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
+            
+        self.title_label.setStyleSheet(f"color: {accent};")
+
         self.control_panel.setStyleSheet(f"""
-            QLabel {{ color: {accent}; font-family: 'Segoe UI Semilight'; font-size: 10pt; }}
-            QCheckBox {{ color: {accent}; font-family: 'Segoe UI Semilight'; }}
+            QFrame#ControlPanel {{
+                background-color: {getattr(t, 'surface', 'transparent')};
+                border: 1px solid {border};
+                border-radius: 8px;
+            }}
+            QLabel {{ color: {text}; font-family: 'Segoe UI Semilight'; font-size: 10pt; }}
+            QCheckBox {{ color: {text}; font-family: 'Segoe UI Semilight'; }}
             QComboBox, QFontComboBox, QSpinBox {{
-                background: {widget_bg}; color: {accent}; border-radius: 4px; padding: 4px 8px; border: 1px solid {accent}22; min-height: 24px;
-            }}
-            QComboBox::drop-down {{
-                subcontrol-origin: padding;
-                subcontrol-position: top right;
-                width: 25px;
-                border-left: 1px solid {accent}22;
-            }}
-            QSpinBox::up-button, QSpinBox::down-button {{
-                width: 25px;
-                border-left: 1px solid {accent}22;
+                background: {widget_bg}; color: {text}; border-radius: 4px; padding: 4px 8px; 
+                border: 1px solid {border}; min-height: 24px;
             }}
             QPushButton {{
-                background: {widget_bg}; color: {accent}; border-radius: 4px; border: 1px solid {accent}22; font-weight: bold; padding: 4px;
+                background: {widget_bg}; color: {text}; border-radius: 4px; 
+                border: 1px solid {border}; font-weight: bold; padding: 6px;
             }}
-            QPushButton:checked {{ background: {accent}; color: {primary}; }}
+            QPushButton:hover {{
+                border: 1px solid {accent};
+            }}
+            QPushButton:checked {{ background: {accent}; color: {primary}; border: 1px solid {accent}; }}
         """)
 
     def _update_theme(self, index):
         self.current_theme_idx = index + 1
         self.apply_panel_style()
+        self._emit_current_styles()
 
     def _on_visibility_toggled(self, checked):
         self.subtitles_visible = checked
