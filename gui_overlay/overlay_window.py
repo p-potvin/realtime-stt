@@ -349,6 +349,8 @@ class SettingsWindow(QMainWindow):
 
         row_0_layout.addWidget(QLabel("Theme:"))
         self.theme_combo = QComboBox()
+        self.theme_combo.setToolTip("Theme Selection")
+        self.theme_combo.setAccessibleName("Theme Selection")
         # Make combo boxes act more like web dropdowns
         self.theme_combo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         for t in self.theme_manager.get_themes():
@@ -381,12 +383,16 @@ class SettingsWindow(QMainWindow):
         row_2_layout = QHBoxLayout()
         row_2_layout.addWidget(QLabel("Font:"))
         self.font_combo = QFontComboBox()
+        self.font_combo.setToolTip("Font Family")
+        self.font_combo.setAccessibleName("Font Family")
         self.font_combo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.font_combo.setCurrentFont(QFont(self.font_family))
         self.font_combo.currentFontChanged.connect(self._update_font_family)
         row_2_layout.addWidget(self.font_combo)
 
         self.size_spin = QSpinBox()
+        self.size_spin.setToolTip("Font Size")
+        self.size_spin.setAccessibleName("Font Size")
         self.size_spin.setRange(8, 120)
         self.size_spin.setValue(self.font_size)
         self.size_spin.setMinimumWidth(60)
@@ -438,6 +444,8 @@ class SettingsWindow(QMainWindow):
         row_3_layout.addWidget(self.outline_color_btn)
 
         self.outline_width_spin = QSpinBox()
+        self.outline_width_spin.setToolTip("Outline Width")
+        self.outline_width_spin.setAccessibleName("Outline Width")
         self.outline_width_spin.setRange(0, 30)
         self.outline_width_spin.setValue(self.outline_width)
         self.outline_width_spin.setMinimumWidth(60)
