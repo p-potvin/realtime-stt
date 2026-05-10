@@ -1,0 +1,3 @@
+## 2026-05-09 - Accessible Tooltips for PySide6 Minimal Buttons
+**Learning:** In PySide6 applications where space constraints lead to single-character buttons (like "B", "I", "U" for font styling) or empty color-picker buttons, screen readers cannot infer the button's purpose, and users miss context. Qt's built-in `setAccessibleName()` provides screen reader context, while `setToolTip()` provides visual hover context.
+**Action:** Always provide both `setToolTip()` and `setAccessibleName()` for any `QPushButton` or interactive widget that relies on an icon, a single character, or lacks descriptive visual text. This ensures compliance with accessibility standards (WCAG) while maintaining compact UI designs.
