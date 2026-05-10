@@ -2,8 +2,6 @@ import os
 import torch
 import numpy as np
 import logging
-import soundfile as sf
-import tempfile
 
 # Check for CUDA availability
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"

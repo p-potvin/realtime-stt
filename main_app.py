@@ -77,7 +77,7 @@ class RealTimeSTTApp:
         self.language = language
         self.theme_idx = theme_idx
         self.device = device
-        self.active_engine = "whisper" # Default to Whisper
+        self.active_engine = "nvidia" # Default to Parakeet
         self.skip_vad = False
         self.last_settings_version = -1       
         
@@ -271,11 +271,6 @@ class RealTimeSTTApp:
 
     def _run_stt(self, full_audio, label_idx):
         try:
-            # Generate a unique filename based on timestamp
-            timestamp = time.strftime("%Y%m%d-%H%M%S")
-            audio_id = secrets.token_hex(2)
-            audio_path = os.path.join(self.log_dir, f"transcription_{timestamp}_{audio_id}.mp3")
-
             if self.simulate_lag:
                 time.sleep(3.0) # Introduce artificial 3 second latency for testing
 

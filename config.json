@@ -6,10 +6,10 @@
     "font_italic": true,
     "font_underline": false,
     "text_color": "#00aa00",
-    "outline_color": "#55aaff",
+    "outline_color": "#aa0000",
     "outline_width": 5,
     "show_subtitle_bg": true,
     "skip_vad": false,
     "subtitles_visible": true,
-    "active_engine": "Whisper"
+    "active_engine": "Parakeet"
 }

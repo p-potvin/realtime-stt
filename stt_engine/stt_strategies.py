@@ -24,7 +24,7 @@ class WhisperStrategy(STTStrategy):
 
 class ParakeetStrategy(STTStrategy):
     def __init__(self):
-        self.engine = ParakeetV3Wrapper(model_name="nvidia/canary-1b")
+        self.engine = ParakeetV3Wrapper(model_name="nvidia/parakeet-tdt-0.6b-v3")
         
     def transcribe(self, audio, language, logger):
         return self.engine.transcribe(audio)

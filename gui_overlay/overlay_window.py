@@ -251,7 +251,7 @@ class SettingsWindow(QMainWindow):
         self.show_subtitle_bg = False # Usually we just want the text with dropshadow
         self.skip_vad = False
         self.subtitles_visible = True
-        self.active_engine = "Whisper"
+        self.active_engine = "Parakeet"
         
         self.config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "config.json")
         self._load_config()
@@ -306,8 +306,7 @@ class SettingsWindow(QMainWindow):
                 self.skip_vad = self._get_validated(data.get("skip_vad"), bool, self.skip_vad)
                 self.subtitles_visible = self._get_validated(data.get("subtitles_visible"), bool, self.subtitles_visible)
 
-                # Engine is forced to Whisper in UI, ignore active_engine from config
-                self.active_engine = "Whisper"
+                self.active_engine = data.get("active_engine", "Parakeet")
             except Exception as e:
                 print(f"Failed to load config: {e}")
 
@@ -422,6 +421,15 @@ class SettingsWindow(QMainWindow):
         self.simulate_lag_checkbox = QCheckBox("Simulate Lag")
         self.simulate_lag_checkbox.stateChanged.connect(self._on_simulate_lag_toggled)
         self.control_layout.addWidget(self.simulate_lag_checkbox, row, 2, 1, 2)
+        
+        row += 1
+        # Engine Selection
+        self.control_layout.addWidget(QLabel("STT Engine:"), row, 0)
+        self.engine_combo = QComboBox()
+        self.engine_combo.addItems(["Whisper", "Parakeet"])
+        self.engine_combo.setCurrentText(self.active_engine)
+        self.engine_combo.currentTextChanged.connect(self._on_engine_changed)
+        self.control_layout.addWidget(self.engine_combo, row, 1, 1, 3)
         
         row += 1
         # Font settings
@@ -646,4 +654,8 @@ class SettingsWindow(QMainWindow):
 
     def _on_skip_vad_toggled(self, checked):
         self.skip_vad = checked
+        self._emit_current_styles()
+
+    def _on_engine_changed(self, text):
+        self.active_engine = text
         self._emit_current_styles()
