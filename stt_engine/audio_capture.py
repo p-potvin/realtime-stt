@@ -51,8 +51,9 @@ class AudioRecorder:
                     # Convert to flattened mono, ensure float32
                     # Bolt: If the audio is already mono (1 channel), avoid the slow
                     # O(N) calculation of `mean(axis=1)` and use an O(1) slice instead.
+                    # Furthermore, using .ravel() avoids copy overhead of slicing and astype(copy=False) avoids allocating a new buffer if it's already float32.
                     if data.shape[1] == 1:
-                        mono_data = data[:, 0].astype(np.float32)
+                        mono_data = data.ravel().astype(np.float32, copy=False)
                     else:
                         mono_data = data.mean(axis=1).astype(np.float32)
                     

@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/p-potvin/vaultwares-docs/main/logo/vaultwares-logo.svg">
+<img src="https://raw.githubusercontent.com/p-potvin/vault-themes/refs/heads/main/assets/logos/vaultwares-logo-dark.svg">
 # realtime-stt
 
 **Real-Time Speech-to-Text Engine**  
@@ -17,6 +17,9 @@ This component provides real-time transcription and translation capabilities for
 - Integration with vaultwares-pipelines for end-to-end media workflows
 - Low-latency mode for vault-player and vault-flows
 - Agent-aware monitoring hooks
+- Persistent JSON configuration (`config.json`)
+- Glass UI 9-theme system
+- WASAPI loopback support out-of-the-box (via `soundcard`)
 
 ## Quick Start
 

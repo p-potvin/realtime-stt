@@ -234,23 +234,24 @@ class SettingsWindow(QMainWindow):
         self._init_ui()
         self._emit_current_styles()
 
-    def _get_validated(self, data, key, expected_type, default_value, min_val=None, max_val=None, regex=None):
-        """Helper to validate types and bounds of config data."""
-        val = data.get(key, default_value)
-        if not isinstance(val, expected_type):
+    def _get_validated(self, value, expected_type, default_value, min_val=None, max_val=None, regex_pattern=None):
+        """Helper to validate data types, bounds, and regex constraints."""
+        if value is None:
+            return default_value
+        if not isinstance(value, expected_type):
             return default_value
 
         if expected_type in (int, float):
-            if min_val is not None and val < min_val:
+            if min_val is not None and value < min_val:
                 return default_value
-            if max_val is not None and val > max_val:
-                return default_value
-
-        if regex and isinstance(val, str):
-            if not re.match(regex, val):
+            if max_val is not None and value > max_val:
                 return default_value
 
-        return val
+        if expected_type == str and regex_pattern:
+            if not re.match(regex_pattern, value):
+                return default_value
+
+        return value
 
     def _load_config(self):
         if os.path.exists(self.config_path):
@@ -258,21 +259,27 @@ class SettingsWindow(QMainWindow):
                 with open(self.config_path, "r") as f:
                     data = json.load(f)
 
-                # Validation regex for Hex colors (e.g., #FFFFFF or #FFF)
-                hex_regex = r"^#(?:[0-9a-fA-F]{3}){1,2}$"
+                # Validate and load settings
+                self.current_theme_idx = self._get_validated(data.get("theme_idx"), int, self.current_theme_idx, min_val=1, max_val=10)
 
-                self.current_theme_idx = self._get_validated(data, "theme_idx", int, self.current_theme_idx, min_val=1, max_val=10)
-                self.font_family = self._get_validated(data, "font_family", str, self.font_family)
-                self.font_size = self._get_validated(data, "font_size", int, self.font_size, min_val=8, max_val=120)
-                self.font_weight = self._get_validated(data, "font_weight", int, self.font_weight, min_val=100, max_val=900)
-                self.font_italic = self._get_validated(data, "font_italic", bool, self.font_italic)
-                self.font_underline = self._get_validated(data, "font_underline", bool, self.font_underline)
-                self.text_color = self._get_validated(data, "text_color", str, self.text_color, regex=hex_regex)
-                self.outline_color = self._get_validated(data, "outline_color", str, self.outline_color, regex=hex_regex)
-                self.outline_width = self._get_validated(data, "outline_width", int, self.outline_width, min_val=0, max_val=30)
-                self.show_subtitle_bg = self._get_validated(data, "show_subtitle_bg", bool, self.show_subtitle_bg)
-                self.skip_vad = self._get_validated(data, "skip_vad", bool, self.skip_vad)
-                self.subtitles_visible = self._get_validated(data, "subtitles_visible", bool, self.subtitles_visible)
+                # Using a generic alphanumeric + space regex for font family to prevent injection
+                self.font_family = self._get_validated(data.get("font_family"), str, self.font_family, regex_pattern=r"^[\w\s\-]+$")
+
+                self.font_size = self._get_validated(data.get("font_size"), int, self.font_size, min_val=8, max_val=120)
+                self.font_weight = self._get_validated(data.get("font_weight"), int, self.font_weight, min_val=100, max_val=900)
+                self.font_italic = self._get_validated(data.get("font_italic"), bool, self.font_italic)
+                self.font_underline = self._get_validated(data.get("font_underline"), bool, self.font_underline)
+
+                # Regex for #RRGGBB colors
+                hex_color_pattern = r"^#[0-9a-fA-F]{6}$"
+                self.text_color = self._get_validated(data.get("text_color"), str, self.text_color, regex_pattern=hex_color_pattern)
+                self.outline_color = self._get_validated(data.get("outline_color"), str, self.outline_color, regex_pattern=hex_color_pattern)
+
+                self.outline_width = self._get_validated(data.get("outline_width"), int, self.outline_width, min_val=0, max_val=30)
+
+                self.show_subtitle_bg = self._get_validated(data.get("show_subtitle_bg"), bool, self.show_subtitle_bg)
+                self.skip_vad = self._get_validated(data.get("skip_vad"), bool, self.skip_vad)
+                self.subtitles_visible = self._get_validated(data.get("subtitles_visible"), bool, self.subtitles_visible)
 
                 # Engine is forced to Whisper in UI, ignore active_engine from config
                 self.active_engine = "Whisper"
@@ -387,6 +394,8 @@ class SettingsWindow(QMainWindow):
         row_2_layout.addWidget(self.size_spin)
 
         self.bold_btn = QPushButton("B")
+        self.bold_btn.setToolTip("Bold Text")
+        self.bold_btn.setAccessibleName("Bold Text")
         self.bold_btn.setCheckable(True)
         self.bold_btn.setChecked(self.font_weight > 400)
         self.bold_btn.setFixedWidth(30)
@@ -394,18 +403,24 @@ class SettingsWindow(QMainWindow):
         row_2_layout.addWidget(self.bold_btn)
 
         self.italic_btn = QPushButton("I")
+        self.italic_btn.setToolTip("Italic Text")
+        self.italic_btn.setAccessibleName("Italic Text")
         self.italic_btn.setCheckable(True)
         self.italic_btn.setFixedWidth(30)
         self.italic_btn.clicked.connect(self._toggle_italic)
         row_2_layout.addWidget(self.italic_btn)
 
         self.under_btn = QPushButton("U")
+        self.under_btn.setToolTip("Underline Text")
+        self.under_btn.setAccessibleName("Underline Text")
         self.under_btn.setCheckable(True)
         self.under_btn.setFixedWidth(30)
         self.under_btn.clicked.connect(self._toggle_underline)
         row_2_layout.addWidget(self.under_btn)
 
         self.text_color_btn = QPushButton("A")
+        self.text_color_btn.setToolTip("Text Color")
+        self.text_color_btn.setAccessibleName("Text Color")
         self.text_color_btn.setFixedWidth(30)
         self.text_color_btn.clicked.connect(self._pick_text_color)
         row_2_layout.addWidget(self.text_color_btn)
@@ -416,6 +431,8 @@ class SettingsWindow(QMainWindow):
         row_3_layout = QHBoxLayout()
         row_3_layout.addWidget(QLabel("Shadow:"))
         self.outline_color_btn = QPushButton()
+        self.outline_color_btn.setToolTip("Outline Color")
+        self.outline_color_btn.setAccessibleName("Outline Color")
         self.outline_color_btn.setFixedWidth(30)
         self.outline_color_btn.clicked.connect(self._pick_outline_color)
         row_3_layout.addWidget(self.outline_color_btn)

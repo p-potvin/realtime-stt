@@ -1,4 +1,3 @@
-import queue
 import threading
 import time
 import numpy as np
@@ -86,10 +85,6 @@ class RealtimeSTTEngine:
                         self.logger.debug("Speech ended.")
                         self.speech_detected = False
                         self._trigger_transcription()
-                    else:
-                        # Optional: Keep a small rolling window of silence 
-                        # for better context (not implemented for MVP)
-                        pass
         except Exception as e:
             self.logger.error(f"Error in STT Engine loop: {e}")
         finally:
