@@ -15,6 +15,11 @@
 **Decision:** Removed unused `import queue` and a redundant `else: pass` block with "not implemented" comments in `stt_engine/engine_orchestrator.py`.
 **Reason:** Unused imports and dead code/comments reduce readability and increase noise. Following the "No Dead Code" policy from the project manifest.
 
+## 2026-05-08: Strict Input Validation for Configuration (CSS Injection Prevention)
+**Goal:** Improve application security by mitigating PySide6 CSS Injection vulnerabilities.
+**Decision:** Implemented a `_get_validated` helper in `SettingsWindow` to enforce type, bounds, and regex validation on all values loaded from `config.json` before they mutate application state or get used in `setStyleSheet()`.
+**Reason:** Unvalidated user configurations loaded from disk and injected directly into PySide6 stylesheets can lead to CSS Injection attacks, allowing arbitrary UI manipulation or potential file reads. Treating local config files as an untrusted boundary ensures robust security.
+
 ## 2026-05-09: Add Accessibility Labels and Tooltips to UI Controls
 **Goal:** Improve PySide6 UI Accessibility and Usability
 **Decision:** Added `setToolTip()` and `setAccessibleName()` to single-character and icon-only `QPushButton` instances (Bold, Italic, Underline, Text Color, Outline Color) in `SettingsWindow`.
