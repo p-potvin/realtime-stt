@@ -14,3 +14,8 @@
 **Goal:** Improve maintainability and reduce clutter.
 **Decision:** Removed unused `import queue` and a redundant `else: pass` block with "not implemented" comments in `stt_engine/engine_orchestrator.py`.
 **Reason:** Unused imports and dead code/comments reduce readability and increase noise. Following the "No Dead Code" policy from the project manifest.
+
+## 2026-05-09: Add Accessibility Labels and Tooltips to UI Controls
+**Goal:** Improve PySide6 UI Accessibility and Usability
+**Decision:** Added `setToolTip()` and `setAccessibleName()` to single-character and icon-only `QPushButton` instances (Bold, Italic, Underline, Text Color, Outline Color) in `SettingsWindow`.
+**Reason:** Buttons with only single letters (e.g., "B", "I", "U", "A") or no text at all are poorly supported by screen readers and provide insufficient context for visually impaired or regular users. Providing explicit tooltips and accessible names enhances both keyboard/mouse UX and assistive technology compatibility without altering the visual layout.
