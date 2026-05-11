@@ -28,3 +28,4 @@
 **Goal:** Improve PySide6 UI Accessibility and Usability
 **Decision:** Added `setToolTip()` and `setAccessibleName()` to single-character and icon-only `QPushButton` instances (Bold, Italic, Underline, Text Color, Outline Color) in `SettingsWindow`.
 **Reason:** Buttons with only single letters (e.g., "B", "I", "U", "A") or no text at all are poorly supported by screen readers and provide insufficient context for visually impaired or regular users. Providing explicit tooltips and accessible names enhances both keyboard/mouse UX and assistive technology compatibility without altering the visual layout.
+## 2026-05-11 - Palette: Add accessibility context to engine dropdown\n**Goal:** Palette: Add accessibility context to engine dropdown\n**Decision:** Added `setToolTip` and `setAccessibleName` to `engine_combo`.\n**Reason:** Following the rule in `.jules/palette.md` to provide screen reader context and visual hover context for QComboBoxes.

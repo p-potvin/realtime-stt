@@ -426,6 +426,8 @@ class SettingsWindow(QMainWindow):
         # Engine Selection
         self.control_layout.addWidget(QLabel("STT Engine:"), row, 0)
         self.engine_combo = QComboBox()
+        self.engine_combo.setToolTip("STT Engine Selection")
+        self.engine_combo.setAccessibleName("STT Engine Selection")
         self.engine_combo.addItems(["Whisper", "Parakeet"])
         self.engine_combo.setCurrentText(self.active_engine)
         self.engine_combo.currentTextChanged.connect(self._on_engine_changed)
