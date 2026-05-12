@@ -397,11 +397,15 @@ class SettingsWindow(QMainWindow):
         row += 1
         # Visibility & BG
         self.visibility_checkbox = QCheckBox("Show Subtitles")
+        self.visibility_checkbox.setToolTip("Toggle Subtitle Visibility")
+        self.visibility_checkbox.setAccessibleName("Toggle Subtitle Visibility")
         self.visibility_checkbox.setChecked(self.subtitles_visible)
         self.visibility_checkbox.toggled.connect(self._on_visibility_toggled)
         self.control_layout.addWidget(self.visibility_checkbox, row, 0, 1, 2)
 
         self.bg_checkbox = QCheckBox("Subtitle Canvas")
+        self.bg_checkbox.setToolTip("Toggle Subtitle Canvas Background")
+        self.bg_checkbox.setAccessibleName("Toggle Subtitle Canvas Background")
         self.bg_checkbox.setChecked(self.show_subtitle_bg)
         self.bg_checkbox.toggled.connect(self._on_bg_toggled)
         self.control_layout.addWidget(self.bg_checkbox, row, 2, 1, 2)
@@ -409,16 +413,22 @@ class SettingsWindow(QMainWindow):
         row += 1
         # Adv Toggles
         self.skip_vad_checkbox = QCheckBox("Skip VAD")
+        self.skip_vad_checkbox.setToolTip("Skip Voice Activity Detection")
+        self.skip_vad_checkbox.setAccessibleName("Skip Voice Activity Detection")
         self.skip_vad_checkbox.setChecked(self.skip_vad)
         self.skip_vad_checkbox.toggled.connect(self._on_skip_vad_toggled)
         self.control_layout.addWidget(self.skip_vad_checkbox, row, 0, 1, 1)
 
         self.debug_checkbox = QCheckBox("Debug Logs")
+        self.debug_checkbox.setToolTip("Toggle Debug Logs")
+        self.debug_checkbox.setAccessibleName("Toggle Debug Logs")
         self.debug_checkbox.setChecked(True)
         self.debug_checkbox.stateChanged.connect(self._on_debug_toggled)
         self.control_layout.addWidget(self.debug_checkbox, row, 1, 1, 1)
 
         self.simulate_lag_checkbox = QCheckBox("Simulate Lag")
+        self.simulate_lag_checkbox.setToolTip("Simulate Network Lag")
+        self.simulate_lag_checkbox.setAccessibleName("Simulate Network Lag")
         self.simulate_lag_checkbox.stateChanged.connect(self._on_simulate_lag_toggled)
         self.control_layout.addWidget(self.simulate_lag_checkbox, row, 2, 1, 2)
         

@@ -4,3 +4,6 @@
 ## 2024-05-10 - Added Tooltips and Accessible Names to Settings UI Comboboxes and Spinboxes
 **Learning:** PySide6 combo boxes and spin boxes used in control panels lack contextual names when read by screen readers. Providing both tooltips for visual feedback and accessible names for a11y ensures a much better experience for users.
 **Action:** When implementing new PySide6 UI widgets (specifically inputs like QComboBox, QSpinBox), always add `setToolTip` and `setAccessibleName` for better context.
+## 2024-05-12 - Accessible Tooltips for PySide6 Checkboxes
+**Learning:** PySide6 checkboxes often lack contextual names when read by screen readers. Providing both tooltips for visual feedback and accessible names for a11y ensures a much better experience for users.
+**Action:** When implementing new PySide6 UI widgets (specifically interactive elements like QCheckBox), always add `setToolTip` and `setAccessibleName` for better context.
