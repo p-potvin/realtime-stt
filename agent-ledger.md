@@ -29,3 +29,7 @@
 **Decision:** Added `setToolTip()` and `setAccessibleName()` to single-character and icon-only `QPushButton` instances (Bold, Italic, Underline, Text Color, Outline Color) in `SettingsWindow`.
 **Reason:** Buttons with only single letters (e.g., "B", "I", "U", "A") or no text at all are poorly supported by screen readers and provide insufficient context for visually impaired or regular users. Providing explicit tooltips and accessible names enhances both keyboard/mouse UX and assistive technology compatibility without altering the visual layout.
 ## 2026-05-11 - Palette: Add accessibility context to engine dropdown\n**Goal:** Palette: Add accessibility context to engine dropdown\n**Decision:** Added `setToolTip` and `setAccessibleName` to `engine_combo`.\n**Reason:** Following the rule in `.jules/palette.md` to provide screen reader context and visual hover context for QComboBoxes.
+## 2024-05-18 - Add Keyboard Shortcuts and Focus Styles to Settings UI
+**Goal:** Enhance keyboard accessibility and user interaction speed in the Settings window.
+**Decision:** Added keyboard shortcuts (`Ctrl+B`, `Ctrl+I`, `Ctrl+U`) to formatting buttons and updated their tooltips. Additionally, explicitly defined `:focus` pseudo-states in the QSS for interactive widgets (`QCheckBox`, `QComboBox`, `QFontComboBox`, `QSpinBox`, `QPushButton`).
+**Reason:** Adding keyboard shortcuts speeds up power-user interactions, while explicit `:focus` states are necessary because custom Qt stylesheets often remove default OS focus indicators, breaking WCAG keyboard navigation compliance.
