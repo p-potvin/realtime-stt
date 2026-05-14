@@ -467,8 +467,9 @@ class SettingsWindow(QMainWindow):
         style_layout.addWidget(self.size_spin)
 
         self.bold_btn = QPushButton("B")
-        self.bold_btn.setToolTip("Bold Text")
+        self.bold_btn.setToolTip("Bold Text (Ctrl+B)")
         self.bold_btn.setAccessibleName("Bold Text")
+        self.bold_btn.setShortcut("Ctrl+B")
         self.bold_btn.setCheckable(True)
         self.bold_btn.setChecked(self.font_weight > 400)
         f_bold = QFont(); f_bold.setBold(True); self.bold_btn.setFont(f_bold)
@@ -476,8 +477,9 @@ class SettingsWindow(QMainWindow):
         style_layout.addWidget(self.bold_btn)
 
         self.italic_btn = QPushButton("I")
-        self.italic_btn.setToolTip("Italic Text")
+        self.italic_btn.setToolTip("Italic Text (Ctrl+I)")
         self.italic_btn.setAccessibleName("Italic Text")
+        self.italic_btn.setShortcut("Ctrl+I")
         self.italic_btn.setCheckable(True)
         self.italic_btn.setChecked(self.font_italic)
         f_italic = QFont(); f_italic.setItalic(True); self.italic_btn.setFont(f_italic)
@@ -485,8 +487,9 @@ class SettingsWindow(QMainWindow):
         style_layout.addWidget(self.italic_btn)
 
         self.under_btn = QPushButton("U")
-        self.under_btn.setToolTip("Underline Text")
+        self.under_btn.setToolTip("Underline Text (Ctrl+U)")
         self.under_btn.setAccessibleName("Underline Text")
+        self.under_btn.setShortcut("Ctrl+U")
         self.under_btn.setCheckable(True)
         self.under_btn.setChecked(self.font_underline)
         f_under = QFont(); f_under.setUnderline(True); self.under_btn.setFont(f_under)
@@ -595,9 +598,16 @@ class SettingsWindow(QMainWindow):
             }}
             QLabel {{ color: {text}; font-family: 'Segoe UI Semilight'; font-size: 10pt; }}
             QCheckBox {{ color: {text}; font-family: 'Segoe UI Semilight'; }}
+            QCheckBox:focus {{
+                background-color: {accent}22;
+                border-radius: 4px;
+            }}
             QComboBox, QFontComboBox, QSpinBox {{
                 background: {widget_bg}; color: {text}; border-radius: 4px; padding: 4px 8px; 
                 border: 1px solid {border}; min-height: 24px;
+            }}
+            QComboBox:focus, QFontComboBox:focus, QSpinBox:focus {{
+                border: 2px solid {accent};
             }}
             QPushButton {{
                 background: {widget_bg}; color: {text}; border-radius: 4px; 
@@ -605,6 +615,10 @@ class SettingsWindow(QMainWindow):
             }}
             QPushButton:hover {{
                 border: 1px solid {accent};
+            }}
+            QPushButton:focus {{
+                border: 2px solid {accent};
+                outline: none;
             }}
             QPushButton:checked {{ background: {accent}; color: {primary}; border: 1px solid {accent}; }}
             QCheckBox:focus, QComboBox:focus, QFontComboBox:focus, QSpinBox:focus, QPushButton:focus {{

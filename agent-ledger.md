@@ -1,6 +1,6 @@
 # Agent Ledger
 
-## 2025-05-05: NumPy Array Object Methods Over Global Functions
+## 2026-05-05: NumPy Array Object Methods Over Global Functions
 **Goal:** Real-time Engine & Model Optimization
 **Decision:** Changed usages of `np.max(np.abs(chunk))` to `np.abs(chunk).max()` in real-time hot paths (`audio_capture.py`, `vad_logic.py`, `main_app.py`).
 **Reason:** Benchmarks show `np.abs(chunk).max()` is nearly 2x faster than `np.max(np.abs(chunk))` by avoiding Python-level function dispatch overhead from the global `np.max` method. For high-frequency realtime chunk processing, every millisecond counts.
@@ -28,7 +28,17 @@
 **Goal:** Improve PySide6 UI Accessibility and Usability
 **Decision:** Added `setToolTip()` and `setAccessibleName()` to single-character and icon-only `QPushButton` instances (Bold, Italic, Underline, Text Color, Outline Color) in `SettingsWindow`.
 **Reason:** Buttons with only single letters (e.g., "B", "I", "U", "A") or no text at all are poorly supported by screen readers and provide insufficient context for visually impaired or regular users. Providing explicit tooltips and accessible names enhances both keyboard/mouse UX and assistive technology compatibility without altering the visual layout.
-## 2026-05-11 - Palette: Add accessibility context to engine dropdown\n**Goal:** Palette: Add accessibility context to engine dropdown\n**Decision:** Added `setToolTip` and `setAccessibleName` to `engine_combo`.\n**Reason:** Following the rule in `.jules/palette.md` to provide screen reader context and visual hover context for QComboBoxes.
+
+## 2026-05-11 - Palette: Add accessibility context to engine dropdown
+**Goal:** Palette: Add accessibility context to engine dropdown
+**Decision:** Added `setToolTip` and `setAccessibleName` to `engine_combo`.
+**Reason:** Following the rule in `.jules/palette.md` to provide screen reader context and visual hover context for QComboBoxes.
+
+## 2026-05-18 - Add Keyboard Shortcuts and Focus Styles to Settings UI
+**Goal:** Enhance keyboard accessibility and user interaction speed in the Settings window.
+**Decision:** Added keyboard shortcuts (`Ctrl+B`, `Ctrl+I`, `Ctrl+U`) to formatting buttons and updated their tooltips. Additionally, explicitly defined `:focus` pseudo-states in the QSS for interactive widgets (`QCheckBox`, `QComboBox`, `QFontComboBox`, `QSpinBox`, `QPushButton`).
+**Reason:** Adding keyboard shortcuts speeds up power-user interactions, while explicit `:focus` states are necessary because custom Qt stylesheets often remove default OS focus indicators, breaking WCAG keyboard navigation compliance.
+
 ## 2026-05-14 - Palette: Keyboard Focus Styles in PySide6 Custom Stylesheets
 **Goal:** Improve Keyboard Navigation Accessibility.
 **Decision:** Added explicit `:focus` pseudo-state selectors to the custom QSS stylesheet in `gui_overlay/overlay_window.py` for interactive widgets like `QCheckBox`, `QComboBox`, `QFontComboBox`, `QSpinBox`, and `QPushButton`. Also included `outline: none;` to suppress conflicting OS-level outlines.
