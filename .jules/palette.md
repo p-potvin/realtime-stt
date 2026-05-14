@@ -7,3 +7,6 @@
 ## 2024-05-12 - Accessible Tooltips for PySide6 Checkboxes
 **Learning:** PySide6 checkboxes often lack contextual names when read by screen readers. Providing both tooltips for visual feedback and accessible names for a11y ensures a much better experience for users.
 **Action:** When implementing new PySide6 UI widgets (specifically interactive elements like QCheckBox), always add `setToolTip` and `setAccessibleName` for better context.
+## 2026-05-14 - Palette: Keyboard Focus Styles in PySide6 Custom Stylesheets
+**Learning:** When creating fully custom PySide6 QSS stylesheets that define the layout and background for controls like QComboBox, QCheckBox, or QPushButton, the OS-level default focus outline is completely stripped away. Users navigating entirely via keyboard lose track of where they are on the page.
+**Action:** When restyling components using QSS, ALWAYS append explicit pseudo-state `:focus` declarations (e.g., `QCheckBox:focus, QComboBox:focus`) to re-introduce a visible focus indicator (like an accent-colored border). Additionally, explicitly declare `outline: none;` to prevent duplicate or conflicting focus artifacts on some platforms.
