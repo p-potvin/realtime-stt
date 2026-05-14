@@ -621,6 +621,10 @@ class SettingsWindow(QMainWindow):
                 outline: none;
             }}
             QPushButton:checked {{ background: {accent}; color: {primary}; border: 1px solid {accent}; }}
+            QCheckBox:focus, QComboBox:focus, QFontComboBox:focus, QSpinBox:focus, QPushButton:focus {{
+                border: 1px solid {accent};
+                outline: none;
+            }}
         """)
 
     def _update_theme(self, index):
