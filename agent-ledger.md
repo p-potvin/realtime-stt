@@ -43,3 +43,8 @@
 **Goal:** Improve Keyboard Navigation Accessibility.
 **Decision:** Added explicit `:focus` pseudo-state selectors to the custom QSS stylesheet in `gui_overlay/overlay_window.py` for interactive widgets like `QCheckBox`, `QComboBox`, `QFontComboBox`, `QSpinBox`, and `QPushButton`. Also included `outline: none;` to suppress conflicting OS-level outlines.
 **Reason:** In PySide6, applying a custom stylesheet often overrides and removes the default OS-provided focus outlines. This breaks accessibility for keyboard users who rely on visual indicators to navigate the interface. Defining `:focus` styling ensures WCAG compliance and provides necessary visual feedback.
+
+## 2026-05-20: O(1) Theme Lookup in TypeScript VaultThemeManager
+**Goal:** Optimize theme retrieval performance in TypeScript
+**Decision:** Replaced O(N) `.find()` iteration in `getTheme` with O(1) Map lookups using a name-to-theme mapping initialized in the constructor.
+**Reason:** Repeated O(N) lookups in the themes array introduce unnecessary latency as the number of themes grows. Using a Map provides O(1) access, ensuring consistent performance for theme retrieval by name.
