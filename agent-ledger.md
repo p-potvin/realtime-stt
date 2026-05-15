@@ -43,3 +43,8 @@
 **Goal:** Improve Keyboard Navigation Accessibility.
 **Decision:** Added explicit `:focus` pseudo-state selectors to the custom QSS stylesheet in `gui_overlay/overlay_window.py` for interactive widgets like `QCheckBox`, `QComboBox`, `QFontComboBox`, `QSpinBox`, and `QPushButton`. Also included `outline: none;` to suppress conflicting OS-level outlines.
 **Reason:** In PySide6, applying a custom stylesheet often overrides and removes the default OS-provided focus outlines. This breaks accessibility for keyboard users who rely on visual indicators to navigate the interface. Defining `:focus` styling ensures WCAG compliance and provides necessary visual feedback.
+
+## 2026-05-19: Visual Duplication Comment Cleanup
+**Goal:** Clarify documentation for the rolling caption display logic.
+**Decision:** Consolidated and reworded the two-line comment in `update_caption` within `gui_overlay/overlay_window.py` to: "Rolling 2-line display prevents visual duplication by ensuring a stable top-to-bottom flow."
+**Reason:** The original comment used "fixes" in a way that could be mistaken for an actionable TODO or a recent bug fix, whereas it actually describes an intentional, stable feature. Rewording ensures clarity for future maintenance.
