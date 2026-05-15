@@ -43,3 +43,8 @@
 **Goal:** Improve Keyboard Navigation Accessibility.
 **Decision:** Added explicit `:focus` pseudo-state selectors to the custom QSS stylesheet in `gui_overlay/overlay_window.py` for interactive widgets like `QCheckBox`, `QComboBox`, `QFontComboBox`, `QSpinBox`, and `QPushButton`. Also included `outline: none;` to suppress conflicting OS-level outlines.
 **Reason:** In PySide6, applying a custom stylesheet often overrides and removes the default OS-provided focus outlines. This breaks accessibility for keyboard users who rely on visual indicators to navigate the interface. Defining `:focus` styling ensures WCAG compliance and provides necessary visual feedback.
+
+## 2026-05-19: Contextual Suffixes and Tooltips for Micro-UX
+**Goal:** Improve UX of settings spinboxes and drag handle.
+**Decision:** Added 'pt' and 'px' suffixes to size spinboxes (`self.size_spin` and `self.outline_width_spin`) and added a tooltip and accessible name to the invisible drag handle in `SubtitleWindow`.
+**Reason:** Adding unit suffixes to compact numeric inputs provides immediate visual context without requiring external labels. Adding tooltips and accessible names to invisible functional elements (like a drag handle) drastically improves discoverability and accessibility for screen readers.
