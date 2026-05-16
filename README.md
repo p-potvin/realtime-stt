@@ -13,7 +13,7 @@ This component provides real-time transcription and translation capabilities for
 - Real-time streaming transcription
 - Multi-language support + auto-translation
 - Local-first execution (GPU/CPU optimized)
-- WebSocket / HTTP streaming endpoints
+- WebSocket / HTTP streaming endpoints (Available via `run_server.py`)
 - Integration with vaultwares-pipelines for end-to-end media workflows
 - Low-latency mode for vault-player and vault-flows
 - Agent-aware monitoring hooks

@@ -10,3 +10,6 @@ sounddevice
 soundcard
 numpy<2.0.0
 hf_xet
+websockets
+fastapi
+uvicorn

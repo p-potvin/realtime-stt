@@ -29,3 +29,8 @@
 **Decision:** Added `setToolTip()` and `setAccessibleName()` to single-character and icon-only `QPushButton` instances (Bold, Italic, Underline, Text Color, Outline Color) in `SettingsWindow`.
 **Reason:** Buttons with only single letters (e.g., "B", "I", "U", "A") or no text at all are poorly supported by screen readers and provide insufficient context for visually impaired or regular users. Providing explicit tooltips and accessible names enhances both keyboard/mouse UX and assistive technology compatibility without altering the visual layout.
 ## 2026-05-11 - Palette: Add accessibility context to engine dropdown\n**Goal:** Palette: Add accessibility context to engine dropdown\n**Decision:** Added `setToolTip` and `setAccessibleName` to `engine_combo`.\n**Reason:** Following the rule in `.jules/palette.md` to provide screen reader context and visual hover context for QComboBoxes.
+
+## 2026-05-14: Implement Secure HTTP/WebSocket Streaming Endpoints
+**Goal:** Fulfill the missing "WebSocket / HTTP streaming endpoints" feature listed in `README.md` securely.
+**Decision:** Created `run_server.py` to securely expose the STT engine using `FastAPI` and `websockets` to ensure protocol-level validation, incorporating strict input validation, connection limits, and error handling.
+**Reason:** The feature was documented but missing from the codebase. Implementing it securely ensures compliance with Ziegler's security guidelines, preventing vulnerabilities like denial of service or injection attacks through unvalidated network input.
