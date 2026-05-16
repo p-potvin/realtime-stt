@@ -1,6 +1,6 @@
 import os
 import sys
-import uuid
+import secrets
 import logging
 import threading
 import time
@@ -37,7 +37,7 @@ class FasterWhisperWrapper:
         self.compute_type = compute_type
         self.cpu_threads = cpu_threads
         self.model = None
-        self.correlation_id = str(uuid.uuid4())
+        self.correlation_id = secrets.token_hex(16)
         self.logger = self._setup_logger(logger_name)
 
     def _setup_logger(self, name: str) -> logging.Logger:
