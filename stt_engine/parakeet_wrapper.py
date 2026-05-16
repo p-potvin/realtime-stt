@@ -4,16 +4,30 @@ import numpy as np
 import logging
 import subprocess
 from typing import Optional
+from contextlib import contextmanager
 
-# Monkey-patch subprocess.Popen to NEVER open a console window on Windows
-if os.name == 'nt':
-    _original_popen = subprocess.Popen
-    class _HushPopen(_original_popen):
-        def __init__(self, *args, **kwargs):
-            if 'creationflags' not in kwargs:
-                kwargs['creationflags'] = subprocess.CREATE_NO_WINDOW | getattr(subprocess, 'DETACHED_PROCESS', 0x00000008)
-            super().__init__(*args, **kwargs)
-    subprocess.Popen = _HushPopen
+
+@contextmanager
+def hush_subprocess():
+    """
+    Context manager to locally patch subprocess.Popen to suppress console
+    windows on Windows only for the duration of the wrapped block.
+    """
+    if os.name == 'nt':
+        original_popen = subprocess.Popen
+        class HushPopen(original_popen):
+            def __init__(self, *args, **kwargs):
+                if 'creationflags' not in kwargs:
+                    kwargs['creationflags'] = subprocess.CREATE_NO_WINDOW | getattr(subprocess, 'DETACHED_PROCESS', 0x00000008)
+                super().__init__(*args, **kwargs)
+        subprocess.Popen = HushPopen
+        try:
+            yield
+        finally:
+            subprocess.Popen = original_popen
+    else:
+        yield
+
 
 # Check for CUDA availability
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -29,7 +43,8 @@ class ParakeetWorker:
         
         # Load the model directly through general ASR wrapper
         try:
-            self.model = nemo_asr.models.ASRModel.from_pretrained(model_name=model_name)
+            with hush_subprocess():
+                self.model = nemo_asr.models.ASRModel.from_pretrained(model_name=model_name)
             self.model = self.model.to(DEVICE)
             self.model.eval()
             self.logger.info("Parakeet/Canary model loaded successfully.")
