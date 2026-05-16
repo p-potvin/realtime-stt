@@ -48,3 +48,7 @@
 **Goal:** Improve UX of settings spinboxes and drag handle.
 **Decision:** Added 'pt' and 'px' suffixes to size spinboxes (`self.size_spin` and `self.outline_width_spin`) and added a tooltip and accessible name to the invisible drag handle in `SubtitleWindow`.
 **Reason:** Adding unit suffixes to compact numeric inputs provides immediate visual context without requiring external labels. Adding tooltips and accessible names to invisible functional elements (like a drag handle) drastically improves discoverability and accessibility for screen readers.
+- Date: 2026-05-20
+- Goal: Improve form accessibility and keyboard navigation in SettingsWindow
+- Decision: Used `QLabel.setBuddy()` and mnemonics (`&`) for form labels next to comboboxes, spinboxes, and buttons in `gui_overlay/overlay_window.py`.
+- Reason: Setting a buddy on a QLabel links it to an input field semantically, allowing screen readers to announce the label when the field is focused. The ampersand mnemonic adds quick Alt+Key navigation shortcuts for keyboard users.

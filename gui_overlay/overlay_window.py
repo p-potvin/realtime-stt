@@ -384,8 +384,10 @@ class SettingsWindow(QMainWindow):
         
         row = 0
         # Theme
-        self.control_layout.addWidget(QLabel("Theme:"), row, 0)
+        theme_label = QLabel("&Theme:")
+        self.control_layout.addWidget(theme_label, row, 0)
         self.theme_combo = QComboBox()
+        theme_label.setBuddy(self.theme_combo)
         self.theme_combo.setToolTip("Theme Selection")
         self.theme_combo.setAccessibleName("Theme Selection")
         # Make combo boxes act more like web dropdowns
@@ -436,8 +438,10 @@ class SettingsWindow(QMainWindow):
         
         row += 1
         # Engine Selection
-        self.control_layout.addWidget(QLabel("STT Engine:"), row, 0)
+        engine_label = QLabel("&STT Engine:")
+        self.control_layout.addWidget(engine_label, row, 0)
         self.engine_combo = QComboBox()
+        engine_label.setBuddy(self.engine_combo)
         self.engine_combo.setToolTip("STT Engine Selection")
         self.engine_combo.setAccessibleName("STT Engine Selection")
         self.engine_combo.addItems(["Whisper", "Parakeet"])
@@ -447,8 +451,10 @@ class SettingsWindow(QMainWindow):
         
         row += 1
         # Font settings
-        self.control_layout.addWidget(QLabel("Font:"), row, 0)
+        font_label = QLabel("&Font:")
+        self.control_layout.addWidget(font_label, row, 0)
         self.font_combo = QFontComboBox()
+        font_label.setBuddy(self.font_combo)
         self.font_combo.setToolTip("Font Family")
         self.font_combo.setAccessibleName("Font Family")
         self.font_combo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -457,10 +463,12 @@ class SettingsWindow(QMainWindow):
         self.control_layout.addWidget(self.font_combo, row, 1, 1, 3)
 
         row += 1
-        self.control_layout.addWidget(QLabel("Style:"), row, 0)
+        style_label = QLabel("S&tyle:")
+        self.control_layout.addWidget(style_label, row, 0)
         
         style_layout = QHBoxLayout()
         self.size_spin = QSpinBox()
+        style_label.setBuddy(self.size_spin)
         self.size_spin.setToolTip("Font Size")
         self.size_spin.setAccessibleName("Font Size")
         self.size_spin.setRange(8, 120)
@@ -510,10 +518,12 @@ class SettingsWindow(QMainWindow):
         
         row += 1
         # Shadow / Outline Controls
-        self.control_layout.addWidget(QLabel("Shadow:"), row, 0)
+        shadow_label = QLabel("S&hadow:")
+        self.control_layout.addWidget(shadow_label, row, 0)
         shadow_layout = QHBoxLayout()
         
         self.outline_color_btn = QPushButton("Color")
+        shadow_label.setBuddy(self.outline_color_btn)
         self.outline_color_btn.setToolTip("Outline Color")
         self.outline_color_btn.setAccessibleName("Outline Color")
         self.outline_color_btn.clicked.connect(self._pick_outline_color)
