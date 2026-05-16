@@ -49,11 +49,17 @@
 **Decision:** Added explicit `:focus` pseudo-state selectors to the custom QSS stylesheet in `gui_overlay/overlay_window.py` for interactive widgets like `QCheckBox`, `QComboBox`, `QFontComboBox`, `QSpinBox`, and `QPushButton`. Also included `outline: none;` to suppress conflicting OS-level outlines.
 **Reason:** In PySide6, applying a custom stylesheet often overrides and removes the default OS-provided focus outlines. This breaks accessibility for keyboard users who rely on visual indicators to navigate the interface. Defining `:focus` styling ensures WCAG compliance and provides necessary visual feedback.
 
+## 2026-05-19: Visual Duplication Comment Cleanup
+**Goal:** Clarify documentation for the rolling caption display logic.
+**Decision:** Consolidated and reworded the two-line comment in `update_caption` within `gui_overlay/overlay_window.py` to: "Rolling 2-line display prevents visual duplication by ensuring a stable top-to-bottom flow."
+**Reason:** The original comment used "fixes" in a way that could be mistaken for an actionable TODO or a recent bug fix, whereas it actually describes an intentional, stable feature. Rewording ensures clarity for future maintenance.
+
 ## 2026-05-19: Contextual Suffixes and Tooltips for Micro-UX
 **Goal:** Improve UX of settings spinboxes and drag handle.
 **Decision:** Added 'pt' and 'px' suffixes to size spinboxes (`self.size_spin` and `self.outline_width_spin`) and added a tooltip and accessible name to the invisible drag handle in `SubtitleWindow`.
 **Reason:** Adding unit suffixes to compact numeric inputs provides immediate visual context without requiring external labels. Adding tooltips and accessible names to invisible functional elements (like a drag handle) drastically improves discoverability and accessibility for screen readers.
-- Date: 2026-05-20
+
+## 2026-05-20
 - Goal: Improve form accessibility and keyboard navigation in SettingsWindow
 - Decision: Used `QLabel.setBuddy()` and mnemonics (`&`) for form labels next to comboboxes, spinboxes, and buttons in `gui_overlay/overlay_window.py`.
 - Reason: Setting a buddy on a QLabel links it to an input field semantically, allowing screen readers to announce the label when the field is focused. The ampersand mnemonic adds quick Alt+Key navigation shortcuts for keyboard users.

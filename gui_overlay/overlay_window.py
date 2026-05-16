@@ -156,8 +156,7 @@ class SubtitleWindow(QMainWindow):
         self.clear_timer.stop()
 
     def update_caption(self, text: str, label_idx: int = 0):
-        # Rolling 2-line display: previous sentence on top, current on bottom.
-        # This fixes the visual 'duplication' by ensuring a stable top-to-bottom flow.
+        # Rolling 2-line display prevents visual duplication by ensuring a stable top-to-bottom flow.
         if not text.strip():
             return
 
