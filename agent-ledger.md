@@ -48,3 +48,8 @@
 **Goal:** Improve UX of settings spinboxes and drag handle.
 **Decision:** Added 'pt' and 'px' suffixes to size spinboxes (`self.size_spin` and `self.outline_width_spin`) and added a tooltip and accessible name to the invisible drag handle in `SubtitleWindow`.
 **Reason:** Adding unit suffixes to compact numeric inputs provides immediate visual context without requiring external labels. Adding tooltips and accessible names to invisible functional elements (like a drag handle) drastically improves discoverability and accessibility for screen readers.
+
+## 2026-05-20: Feature Registry Synchronization and PII Redaction Pipeline Proposal
+**Goal:** Agent Routine Execution (Ziegler) - Continuous Improvement
+**Decision:** Updated `README.md` features section with recent accomplishments (Fault-Tolerant Hardware Management, Multi-segment handling optimization, Dynamic Peak AGC). Proposing a new security feature: Real-Time PII Redaction Pipeline.
+**Reason:** Adhering to the agent's core operational loop (Step 2 and Step 3b). The project lacks active feature branches, so a new high-value security feature is proposed. The PII redaction pipeline aligns with VaultWares' privacy-first philosophy, ensuring sensitive data like SSNs or credit cards aren't inadvertently broadcasted or logged during real-time transcription.

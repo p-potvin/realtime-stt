@@ -254,6 +254,7 @@ class SettingsWindow(QMainWindow):
         self.skip_vad = False
         self.subtitles_visible = True
         self.active_engine = "Parakeet"
+        self.enable_pii_redaction = False
         
         self.config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "config.json")
         self._load_config()
@@ -307,6 +308,7 @@ class SettingsWindow(QMainWindow):
                 self.show_subtitle_bg = self._get_validated(data.get("show_subtitle_bg"), bool, self.show_subtitle_bg)
                 self.skip_vad = self._get_validated(data.get("skip_vad"), bool, self.skip_vad)
                 self.subtitles_visible = self._get_validated(data.get("subtitles_visible"), bool, self.subtitles_visible)
+                self.enable_pii_redaction = self._get_validated(data.get("enable_pii_redaction"), bool, self.enable_pii_redaction)
 
                 self.active_engine = data.get("active_engine", "Parakeet")
             except Exception as e:
@@ -326,7 +328,8 @@ class SettingsWindow(QMainWindow):
             "show_subtitle_bg": self.show_subtitle_bg,
             "skip_vad": self.skip_vad,
             "subtitles_visible": self.subtitles_visible,
-            "active_engine": self.active_engine
+            "active_engine": self.active_engine,
+            "enable_pii_redaction": self.enable_pii_redaction
         }
         try:
             with open(self.config_path, "w") as f:
@@ -420,6 +423,14 @@ class SettingsWindow(QMainWindow):
         self.skip_vad_checkbox.setChecked(self.skip_vad)
         self.skip_vad_checkbox.toggled.connect(self._on_skip_vad_toggled)
         self.control_layout.addWidget(self.skip_vad_checkbox, row, 0, 1, 1)
+
+        self.pii_redaction_checkbox = QCheckBox("PII Redaction")
+        self.pii_redaction_checkbox.setToolTip("Redact sensitive information like SSN, Credit Cards, and Phones")
+        self.pii_redaction_checkbox.setAccessibleName("Enable Personally Identifiable Information Redaction")
+        self.pii_redaction_checkbox.setChecked(self.enable_pii_redaction)
+        self.pii_redaction_checkbox.toggled.connect(self._on_pii_redaction_toggled)
+        self.control_layout.addWidget(self.pii_redaction_checkbox, row, 1, 1, 1)
+        row += 1
 
         self.debug_checkbox = QCheckBox("Debug Logs")
         self.debug_checkbox.setToolTip("Toggle Debug Logs")
@@ -551,7 +562,8 @@ class SettingsWindow(QMainWindow):
             "bg_color": self.subtitle_bg_color if self.show_subtitle_bg else "transparent",
             "is_visible": self.subtitles_visible,
             "skip_vad": self.skip_vad,
-            "active_engine": engine_val
+            "active_engine": engine_val,
+            "enable_pii_redaction": self.enable_pii_redaction
         }
         
         # Prevent spamming signals if state hasn't actually mutated
@@ -688,6 +700,10 @@ class SettingsWindow(QMainWindow):
 
     def _on_skip_vad_toggled(self, checked):
         self.skip_vad = checked
+        self._emit_current_styles()
+
+    def _on_pii_redaction_toggled(self, checked):
+        self.enable_pii_redaction = checked
         self._emit_current_styles()
 
     def _on_engine_changed(self, text):
