@@ -29,3 +29,7 @@
 **Decision:** Added `setToolTip()` and `setAccessibleName()` to single-character and icon-only `QPushButton` instances (Bold, Italic, Underline, Text Color, Outline Color) in `SettingsWindow`.
 **Reason:** Buttons with only single letters (e.g., "B", "I", "U", "A") or no text at all are poorly supported by screen readers and provide insufficient context for visually impaired or regular users. Providing explicit tooltips and accessible names enhances both keyboard/mouse UX and assistive technology compatibility without altering the visual layout.
 ## 2026-05-11 - Palette: Add accessibility context to engine dropdown\n**Goal:** Palette: Add accessibility context to engine dropdown\n**Decision:** Added `setToolTip` and `setAccessibleName` to `engine_combo`.\n**Reason:** Following the rule in `.jules/palette.md` to provide screen reader context and visual hover context for QComboBoxes.
+## 2026-05-14: Bolt - Audio Capture Loop Optmization
+**Goal:** Bolt: Optimize performance of the hot audio capture loop
+**Decision:** Moved the initialization of `_log_counter` to the class constructor `__init__` and moved the constant `TARGET_PEAK = 0.4` outside of the `while self.is_recording:` loop.
+**Reason:** Repeated evaluation of `if not hasattr(self, '_log_counter')` and redundant constant assignment of `TARGET_PEAK` inside a fast-running (~30 frames/sec) `while` loop degraded performance. Moving initializations to the constructor and constant assignments outside the loop avoids these overheads on the hot path.

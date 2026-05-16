@@ -18,6 +18,7 @@ class AudioRecorder:
         self.logger = logging.getLogger("vaultwares.audio")
         self.is_recording = False
         self._thread = None
+        self._log_counter = 0
 
     def list_audio_devices(self):
         """Lists all available loopback and input devices."""
@@ -46,6 +47,11 @@ class AudioRecorder:
         try:
             with mic.recorder(samplerate=self.samplerate, channels=self.channels) as recorder:
                 self.logger.info(f"Audio recording started on loopback device: {mic.name}")
+
+                # Software AGC: Normalize quiet signals to a target level for VAD/STT.
+                # We target a peak of ~0.4 to give the models a clear but unclipped signal.
+                TARGET_PEAK = 0.4
+
                 while self.is_recording:
                     data = recorder.record(numframes=self.blocksize)
                     # Convert to flattened mono, ensure float32
@@ -64,12 +70,8 @@ class AudioRecorder:
                     peak = np.abs(mono_data).max()
 
                     # Log peak volume every 100 chunks (~3 seconds) to verify audio flow
-                    if not hasattr(self, '_log_counter'): self._log_counter = 0
                     self._log_counter += 1
                     
-                    # Software AGC: Normalize quiet signals to a target level for VAD/STT.
-                    # We target a peak of ~0.4 to give the models a clear but unclipped signal.
-                    TARGET_PEAK = 0.4
                     if peak > 0.001:
                         gain = min(10.0, TARGET_PEAK / max(peak, 0.01))
                         if gain > 1.0:

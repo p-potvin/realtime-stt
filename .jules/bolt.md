@@ -25,3 +25,6 @@
 ## 2025-05-18 - NumPy Mono Channel Audio Buffer Flattening
 **Learning:** When stripping the channel dimension from a mono-channel audio buffer returned from `soundcard` (e.g., shape `[512, 1]` to `[512]`), using `data.ravel().astype(np.float32, copy=False)` is approximately 3x faster than array slicing `data[:, 0].astype(np.float32)`. `ravel()` takes advantage of numpy's low-overhead view reshaping to bypass the copy overhead introduced by explicit indexing and `.astype(copy=True)`.
 **Action:** Use `.ravel().astype(..., copy=False)` instead of slicing when flattening single-channel multi-dimensional audio buffers in hot paths.
+## 2026-05-14 - Hot Path Constant Assignments and Lazy Initializations
+**Learning:** Initializing state using `if not hasattr(...)` checks or assigning constants like `TARGET_PEAK = 0.4` inside a fast-running loop (e.g., audio chunk capturing) causes unnecessary redundant evaluations and CPU overhead on every iteration.
+**Action:** To optimize high-frequency processing loops, hoist constant assignments outside the loop and move dynamic state initialization (like `hasattr` checks) to the class constructor (`__init__`) to prevent redundant allocations and evaluations on the hot path.
