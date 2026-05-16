@@ -28,3 +28,8 @@
 **Goal:** Improve PySide6 UI Accessibility and Usability
 **Decision:** Added `setToolTip()` and `setAccessibleName()` to single-character and icon-only `QPushButton` instances (Bold, Italic, Underline, Text Color, Outline Color) in `SettingsWindow`.
 **Reason:** Buttons with only single letters (e.g., "B", "I", "U", "A") or no text at all are poorly supported by screen readers and provide insufficient context for visually impaired or regular users. Providing explicit tooltips and accessible names enhances both keyboard/mouse UX and assistive technology compatibility without altering the visual layout.
+
+## 2026-05-10: Update Feature Registry and Propose Encrypted WebSocket
+**Goal:** Synchronize documentation with current capabilities and plan next security-focused feature.
+**Decision:** Updated README.md to include recently completed features (Dynamic Logging, Background Tray, AGC, Engine Strategy) and proposed the implementation of an Encrypted WebSocket Endpoint (wss://) with token-based authentication.
+**Reason:** Maintaining an accurate feature registry is critical for the VaultWares ecosystem. The proposed Encrypted WebSocket feature addresses a missing capability mentioned in the README while adhering strictly to the privacy-first and secure-by-default philosophy required by the security standards.

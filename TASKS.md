@@ -35,3 +35,18 @@
 21. [x] Fix bug in vaultwares team (Verified sync integration)
 22. [x] Fix bug in vault sync (Verified dependency auto-update)
 23. [x] Fix bug in main app (Final stability and architecture verification)
+
+## DELEGATED TASKS
+
+### Agent: ziegler
+**Task:** Implement Secure Encrypted WebSocket (WSS) Streaming Endpoint
+**Priority:** High
+**Status:** Pending
+**Description:**
+Implement an encrypted `wss://` WebSocket endpoint in `stt_engine/websocket_server.py` to broadcast transcribed text securely to authenticated clients.
+**Requirements:**
+1. Use an async server approach (e.g., `websockets` library).
+2. Must enforce TLS/SSL context.
+3. Must implement strict token-based authentication (no hardcoded secrets; tokens must be read from environment variables or a secure configuration).
+4. Integrate with the existing engine orchestrator to receive the output stream without blocking the main real-time audio thread.
+5. All new code must be accompanied by corresponding unit tests.

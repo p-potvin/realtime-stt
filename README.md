@@ -10,6 +10,11 @@
 This component provides real-time transcription and translation capabilities for video, audio streams, live meetings, and media processing pipelines across the VaultWares ecosystem.
 
 ## Features
+- Dynamic Debugging Controls (Global Log Level Toggle)
+- Background Tray Icon & decoupled transparent overlay
+- Multi-segment handling optimization (Near real-time algorithms, VAD slicing)
+- Audio Volume Normalization (Dynamic Peak AGC)
+- Extensible Strategy-Pattern Engine Architecture (FasterWhisper, Parakeet)
 - Real-time streaming transcription
 - Multi-language support + auto-translation
 - Local-first execution (GPU/CPU optimized)
