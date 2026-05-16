@@ -55,7 +55,11 @@ class AudioRecorder:
                     if data.shape[1] == 1:
                         mono_data = data.ravel().astype(np.float32, copy=False)
                     else:
-                        mono_data = data.mean(axis=1).astype(np.float32)
+                        # Bolt: Use sum(axis=1) / data.shape[1] for downmixing multi-channel arrays
+                        # instead of mean(axis=1). Avoiding the internal floating-point dispatch
+                        # overhead from mean() provides a measurable performance boost during
+                        # stereo downmixing on the hot path while maintaining generic channel support.
+                        mono_data = (data.sum(axis=1) / data.shape[1]).astype(np.float32, copy=False)
                     
                     # We no longer apply arbitrary linear gain here.
                     # Normalization is now handled inside VAD and STT directly.
