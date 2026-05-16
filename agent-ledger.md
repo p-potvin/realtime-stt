@@ -28,3 +28,8 @@
 **Goal:** Improve PySide6 UI Accessibility and Usability
 **Decision:** Added `setToolTip()` and `setAccessibleName()` to single-character and icon-only `QPushButton` instances (Bold, Italic, Underline, Text Color, Outline Color) in `SettingsWindow`.
 **Reason:** Buttons with only single letters (e.g., "B", "I", "U", "A") or no text at all are poorly supported by screen readers and provide insufficient context for visually impaired or regular users. Providing explicit tooltips and accessible names enhances both keyboard/mouse UX and assistive technology compatibility without altering the visual layout.
+
+## 2026-05-11: Scaffold Encrypted WebSocket Streaming Endpoints
+**Goal:** Fulfill the documented feature for WebSocket streaming endpoints.
+**Decision:** Created initial scaffolding `stt_engine/websocket_server.py` containing a `SecureWebSocketServer` class. Configured TLSv1.2+ minimum and strict cipher suites.
+**Reason:** The README.md documented "Encrypted WebSocket option" as a feature, but it was missing from the codebase. The scaffolding establishes a secure-by-default architecture, aligning with the Ziegler security focus and Vaultwares privacy standards, preventing unencrypted transport defaults.

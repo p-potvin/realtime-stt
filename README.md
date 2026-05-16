@@ -13,13 +13,18 @@ This component provides real-time transcription and translation capabilities for
 - Real-time streaming transcription
 - Multi-language support + auto-translation
 - Local-first execution (GPU/CPU optimized)
+- Automatic CPU fallback for models
 - WebSocket / HTTP streaming endpoints
 - Integration with vaultwares-pipelines for end-to-end media workflows
 - Low-latency mode for vault-player and vault-flows
 - Agent-aware monitoring hooks
 - Persistent JSON configuration (`config.json`)
+- GUI Overlay with Subtitle custom styling & Outlining
 - Glass UI 9-theme system
+- VaultWares Theme Management
 - WASAPI loopback support out-of-the-box (via `soundcard`)
+- Dynamic Debugging Controls
+- Audio Volume Normalization
 
 ## Quick Start
 
