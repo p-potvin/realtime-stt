@@ -34,6 +34,11 @@
 **Decision:** Added `setToolTip` and `setAccessibleName` to `engine_combo`.
 **Reason:** Following the rule in `.jules/palette.md` to provide screen reader context and visual hover context for QComboBoxes.
 
+## 2026-05-15: Security Fix - Remove Global Monkey-Patching of subprocess.Popen
+**Goal:** Fix security vulnerability related to global state mutation.
+**Decision:** Removed the global monkey-patch of `subprocess.Popen` in `stt_engine/parakeet_wrapper.py`. Replaced it with a `hush_subprocess` context manager for localized patching during NeMo model initialization and updated `vault_sync.py` to use explicit `creationflags`.
+**Reason:** Global monkey-patching of standard library modules is a security risk and can lead to unintended side effects across the entire application. Localizing the behavior ensures that only the necessary calls are affected.
+
 ## 2026-05-18 - Add Keyboard Shortcuts and Focus Styles to Settings UI
 **Goal:** Enhance keyboard accessibility and user interaction speed in the Settings window.
 **Decision:** Added keyboard shortcuts (`Ctrl+B`, `Ctrl+I`, `Ctrl+U`) to formatting buttons and updated their tooltips. Additionally, explicitly defined `:focus` pseudo-states in the QSS for interactive widgets (`QCheckBox`, `QComboBox`, `QFontComboBox`, `QSpinBox`, `QPushButton`).
