@@ -46,36 +46,17 @@ class ParakeetWorker:
 
         try:
             with torch.no_grad():
-                # Direct Tensor Inference: Bypass File System completely
-                audio_tensor = torch.from_numpy(audio_data).unsqueeze(0).to(DEVICE)
-                audio_len = torch.tensor([audio_tensor.shape[1]], dtype=torch.long).to(DEVICE)
+                # Bolt: NeMo natively accepts NumPy arrays. Manually creating tensors
+                # and sending to DEVICE blocks the hot path and causes unused memory overhead.
+                # Use transcribe directly. audio should be wrapped in a list.
+                transcriptions = self.model.transcribe(audio=[audio_data])
 
-                # Send directly to the encoder/forward block
-                forward_out = self.model.forward(input_signal=audio_tensor, input_signal_length=audio_len)
+                if transcriptions and isinstance(transcriptions, list):
+                    return str(transcriptions[0])
+                elif isinstance(transcriptions, tuple) and len(transcriptions) > 0 and isinstance(transcriptions[0], list):
+                    return str(transcriptions[0][0])
+                return str(transcriptions)
 
-                # Differentiate between CTC and RNNT architectures
-                if hasattr(self.model, 'decoding'):
-                    if hasattr(self.model.decoding, 'ctc_decoder_predictions_tensor'):
-                        # CTC Decode
-                        greedy_predictions = forward_out[2]
-                        encoded_len = forward_out[1]
-                        hypotheses, _ = self.model.decoding.ctc_decoder_predictions_tensor(
-                            greedy_predictions, predictions_len=encoded_len
-                        )
-                        curr_hyp = hypotheses[0][0] if isinstance(hypotheses[0], list) else hypotheses[0]
-                        return curr_hyp.text if hasattr(curr_hyp, 'text') else str(curr_hyp)
-                        
-                    elif hasattr(self.model.decoding, 'rnnt_decoder_predictions_tensor'):
-                        # RNNT Decode
-                        encoder_output = forward_out[0]
-                        encoded_len = forward_out[1]
-                        hypotheses, _ = self.model.decoding.rnnt_decoder_predictions_tensor(
-                            encoder_output, encoded_len
-                        )
-                        return hypotheses[0].text if hasattr(hypotheses[0], 'text') else str(hypotheses[0])
-
-                return ""
-                
         except Exception as e:
             self.logger.error(f"Parakeet transcription error: {e}")
             return f"[Error: {e}]"

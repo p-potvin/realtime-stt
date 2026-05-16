@@ -34,29 +34,16 @@ class FastConformerWrapper:
 
         try:
             with torch.no_grad():
-                # Direct Tensor Inference: Bypass File System completely
-                audio_tensor = torch.from_numpy(audio_data).unsqueeze(0).to(DEVICE)
-                audio_len = torch.tensor([audio_tensor.shape[1]], dtype=torch.long).to(DEVICE)
-
-                # Send directly to the encoder/forward block
-                forward_out = self.model.forward(input_signal=audio_tensor, input_signal_length=audio_len)
+                # Bolt: NeMo natively accepts NumPy arrays. Manually creating tensors
+                # and sending to DEVICE blocks the hot path and causes unused memory overhead.
+                # Use transcribe directly. audio should be wrapped in a list.
+                transcriptions = self.model.transcribe(audio=[audio_data])
                 
-                # Model returns (log_probs, encoded_len, greedy_predictions)
-                greedy_predictions = forward_out[2]
-                encoded_len = forward_out[1]
-
-                # Decode into raw text using NeMo's native decoder
-                hypotheses, _ = self.model.decoding.ctc_decoder_predictions_tensor(
-                    greedy_predictions, predictions_len=encoded_len
-                )
-                
-                # Check hypotheses packing variation
-                if hasattr(hypotheses[0], 'text'):
-                    return hypotheses[0].text
-                elif isinstance(hypotheses[0], list):
-                    return hypotheses[0][0]
-                else:
-                    return str(hypotheses[0])
+                if transcriptions and isinstance(transcriptions, list):
+                    return str(transcriptions[0])
+                elif isinstance(transcriptions, tuple) and len(transcriptions) > 0 and isinstance(transcriptions[0], list):
+                    return str(transcriptions[0][0])
+                return str(transcriptions)
                 
         except Exception as e:
             self.logger.error(f"FastConformer transcription error: {e}")

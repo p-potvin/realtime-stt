@@ -29,3 +29,7 @@
 **Decision:** Added `setToolTip()` and `setAccessibleName()` to single-character and icon-only `QPushButton` instances (Bold, Italic, Underline, Text Color, Outline Color) in `SettingsWindow`.
 **Reason:** Buttons with only single letters (e.g., "B", "I", "U", "A") or no text at all are poorly supported by screen readers and provide insufficient context for visually impaired or regular users. Providing explicit tooltips and accessible names enhances both keyboard/mouse UX and assistive technology compatibility without altering the visual layout.
 ## 2026-05-11 - Palette: Add accessibility context to engine dropdown\n**Goal:** Palette: Add accessibility context to engine dropdown\n**Decision:** Added `setToolTip` and `setAccessibleName` to `engine_combo`.\n**Reason:** Following the rule in `.jules/palette.md` to provide screen reader context and visual hover context for QComboBoxes.
+## 2026-05-12 - Bolt: Optimize NeMo PyTorch Tensor Conversions
+**Goal:** Optimize hot-path latency
+**Decision:** Replaced manual `numpy` to PyTorch tensor conversions and `.forward()` calls in `FastConformerWrapper` and `ParakeetWorker` with a direct call to `self.model.transcribe(audio=audio_data)`.
+**Reason:** NeMo's native `transcribe()` handles device transfers and inference efficiently. Manually creating tensors block the hot path and causes unused memory allocation overhead.
