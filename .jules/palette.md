@@ -16,3 +16,6 @@
 ## 2026-05-19 - Contextual Suffixes for Numeric Inputs in PySide6
 **Learning:** Numeric inputs (QSpinBox) in compact toolbars often lack space for descriptive labels. The visual value itself lacks context (e.g., "13" instead of "13 pt"), causing cognitive friction.
 **Action:** Always use `setSuffix()` (e.g., " pt", " px") on `QSpinBox` elements to provide immediate visual context for the unit of measurement without requiring external labels.
+## 2026-05-20 - Qt QLabel Buddy for Form Accessibility and Keyboard Navigation
+**Learning:** In PySide6 interfaces, using standalone `QLabel` instances adjacent to input fields (like `QComboBox` or `QSpinBox`) mimics visual form labels but lacks semantic association. This prevents screen readers from automatically announcing the label when the input is focused, and deprives keyboard users of quick navigation shortcuts (Alt+Key).
+**Action:** Always use `QLabel.setBuddy()` to semantically link a `QLabel` to its corresponding input widget, akin to the HTML `<label for="...">` attribute. Additionally, prefix the label text with `&` (e.g., `&Theme:`) to automatically assign an Alt-key shortcut for faster keyboard navigation.
