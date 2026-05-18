@@ -1,3 +1,8 @@
+## 🛡️-2026-05-15 - Global Monkey Patching of subprocess.Popen
+**Vulnerability:** The application globally monkey-patched `subprocess.Popen` upon importing `stt_engine/parakeet_wrapper.py` to suppress console windows on Windows. This affected every subsequent `subprocess` call in the entire process, including third-party libraries and unrelated application logic, potentially leading to unintended side effects or masking malicious activity.
+**Learning:** Global monkey-patching of core standard library modules is risky as it alters the global state and behavior of the application in ways that may not be obvious to other modules or developers. It can introduce subtle bugs and security gaps by overriding expected security controls or visibility.
+**Prevention:** Avoid global monkey-patching of standard library modules. Instead, use localized solutions such as context managers to apply patches only when strictly necessary, or explicitly pass the required arguments/flags to specific function calls.
+
 ## 🛡️-05-08 - PySide6 CSS Injection via Unvalidated Configuration
 **Vulnerability:** The application loaded style preferences (colors, font sizes, etc.) directly from `config.json` without validation, injecting them straight into `setStyleSheet()`. A malicious local file edit to `config.json` could result in PySide6 CSS Injection, allowing arbitrary UI manipulation or potential local file read/exfiltration using CSS `url(file://...)` constructs.
 **Learning:** PySide6/Qt stylesheets are powerful enough to be dangerous if populated with untrusted/unvalidated data. Settings files (`config.json`), even if local, should be treated as untrusted input boundaries because they can be modified by other processes or malware.

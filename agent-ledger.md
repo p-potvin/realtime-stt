@@ -34,6 +34,11 @@
 **Decision:** Added `setToolTip` and `setAccessibleName` to `engine_combo`.
 **Reason:** Following the rule in `.jules/palette.md` to provide screen reader context and visual hover context for QComboBoxes.
 
+## 2026-05-15: Security Fix - Remove Global Monkey-Patching of subprocess.Popen
+**Goal:** Fix security vulnerability related to global state mutation.
+**Decision:** Removed the global monkey-patch of `subprocess.Popen` in `stt_engine/parakeet_wrapper.py`. Replaced it with a `hush_subprocess` context manager for localized patching during NeMo model initialization and updated `vault_sync.py` to use explicit `creationflags`.
+**Reason:** Global monkey-patching of standard library modules is a security risk and can lead to unintended side effects across the entire application. Localizing the behavior ensures that only the necessary calls are affected.
+
 ## 2026-05-18 - Add Keyboard Shortcuts and Focus Styles to Settings UI
 **Goal:** Enhance keyboard accessibility and user interaction speed in the Settings window.
 **Decision:** Added keyboard shortcuts (`Ctrl+B`, `Ctrl+I`, `Ctrl+U`) to formatting buttons and updated their tooltips. Additionally, explicitly defined `:focus` pseudo-states in the QSS for interactive widgets (`QCheckBox`, `QComboBox`, `QFontComboBox`, `QSpinBox`, `QPushButton`).
@@ -44,6 +49,11 @@
 **Decision:** Added explicit `:focus` pseudo-state selectors to the custom QSS stylesheet in `gui_overlay/overlay_window.py` for interactive widgets like `QCheckBox`, `QComboBox`, `QFontComboBox`, `QSpinBox`, and `QPushButton`. Also included `outline: none;` to suppress conflicting OS-level outlines.
 **Reason:** In PySide6, applying a custom stylesheet often overrides and removes the default OS-provided focus outlines. This breaks accessibility for keyboard users who rely on visual indicators to navigate the interface. Defining `:focus` styling ensures WCAG compliance and provides necessary visual feedback.
 
+## 2026-05-19: Visual Duplication Comment Cleanup
+**Goal:** Clarify documentation for the rolling caption display logic.
+**Decision:** Consolidated and reworded the two-line comment in `update_caption` within `gui_overlay/overlay_window.py` to: "Rolling 2-line display prevents visual duplication by ensuring a stable top-to-bottom flow."
+**Reason:** The original comment used "fixes" in a way that could be mistaken for an actionable TODO or a recent bug fix, whereas it actually describes an intentional, stable feature. Rewording ensures clarity for future maintenance.
+
 ## 2026-05-19: Contextual Suffixes and Tooltips for Micro-UX
 **Goal:** Improve UX of settings spinboxes and drag handle.
 **Decision:** Added 'pt' and 'px' suffixes to size spinboxes (`self.size_spin` and `self.outline_width_spin`) and added a tooltip and accessible name to the invisible drag handle in `SubtitleWindow`.
@@ -53,3 +63,7 @@
 **Goal:** Agent Routine Execution (Ziegler) - Continuous Improvement
 **Decision:** Updated `README.md` features section with recent accomplishments (Fault-Tolerant Hardware Management, Multi-segment handling optimization, Dynamic Peak AGC). Proposing a new security feature: Real-Time PII Redaction Pipeline.
 **Reason:** Adhering to the agent's core operational loop (Step 2 and Step 3b). The project lacks active feature branches, so a new high-value security feature is proposed. The PII redaction pipeline aligns with VaultWares' privacy-first philosophy, ensuring sensitive data like SSNs or credit cards aren't inadvertently broadcasted or logged during real-time transcription.
+## 2026-05-20
+- Goal: Improve form accessibility and keyboard navigation in SettingsWindow
+- Decision: Used `QLabel.setBuddy()` and mnemonics (`&`) for form labels next to comboboxes, spinboxes, and buttons in `gui_overlay/overlay_window.py`.
+- Reason: Setting a buddy on a QLabel links it to an input field semantically, allowing screen readers to announce the label when the field is focused. The ampersand mnemonic adds quick Alt+Key navigation shortcuts for keyboard users.

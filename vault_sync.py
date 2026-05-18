@@ -38,12 +38,17 @@ def sync_vault_dependencies():
             print(f"[*] Ensuring dependency: {folder} from {url} ({branch})")
 
             # Check if directory exists
+            run_kwargs = {"check": True}
+            if os.name == 'nt':
+                # CREATE_NO_WINDOW = 0x08000000
+                run_kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
+
             if not os.path.exists(folder):
                 print(f"[*] Adding new submodule {folder}...")
-                subprocess.run(["git", "submodule", "add", "-b", branch, "--", url, folder], check=True)
+                subprocess.run(["git", "submodule", "add", "-b", branch, "--", url, folder], **run_kwargs)
             else:
                 print(f"[*] Updating existing submodule {folder}...")
-                subprocess.run(["git", "submodule", "update", "--init", "--remote", "--", folder], check=True)
+                subprocess.run(["git", "submodule", "update", "--init", "--remote", "--", folder], **run_kwargs)
 
         except ValueError:
             print(f"[-] Malformed line in {manifest_path}: '{line}'")
