@@ -1,4 +1,4 @@
-[submodule "vault_themes"]
-	path = vault_themes
-	url = https://github.com/p-potvin/vault-themes.git
+[submodule "vaultwares_themes"]
+	path = vaultwares_themes
+	url = https://github.com/p-potvin/vaultwares-themes.git
 	branch = main

@@ -45,8 +45,8 @@
 
 |Asset Name|Location|Purpose|
 |---|---|---|
-|FasterWhisperWrapper|`stt_engine/faster_whisper_wrapper.py`|High-performance local STT inference|
-|VADLogic|`stt_engine/vad_logic.py`|Silence/Speech filtering to reduce model load|
+|FasterWhisperWrapper|`vaultwares_realtime/faster_whisper_wrapper.py`|High-performance local STT inference|
+|VADLogic|`vaultwares_realtime/vad_logic.py`|Silence/Speech filtering to reduce model load|
 |TransparentOverlay|`gui_overlay/overlay_window.py`|Frameless, draggable, customizable UI base|
 |apply_panel_style|`gui_overlay/overlay_window.py`|VaultWares "Glass UI" styling application|
 

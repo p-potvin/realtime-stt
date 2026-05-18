@@ -1,5 +1,5 @@
 ## 🛡️-2026-05-15 - Global Monkey Patching of subprocess.Popen
-**Vulnerability:** The application globally monkey-patched `subprocess.Popen` upon importing `stt_engine/parakeet_wrapper.py` to suppress console windows on Windows. This affected every subsequent `subprocess` call in the entire process, including third-party libraries and unrelated application logic, potentially leading to unintended side effects or masking malicious activity.
+**Vulnerability:** The application globally monkey-patched `subprocess.Popen` upon importing `vaultwares_realtime/parakeet_wrapper.py` to suppress console windows on Windows. This affected every subsequent `subprocess` call in the entire process, including third-party libraries and unrelated application logic, potentially leading to unintended side effects or masking malicious activity.
 **Learning:** Global monkey-patching of core standard library modules is risky as it alters the global state and behavior of the application in ways that may not be obvious to other modules or developers. It can introduce subtle bugs and security gaps by overriding expected security controls or visibility.
 **Prevention:** Avoid global monkey-patching of standard library modules. Instead, use localized solutions such as context managers to apply patches only when strictly necessary, or explicitly pass the required arguments/flags to specific function calls.
 
@@ -9,6 +9,6 @@
 **Prevention:** Always validate configuration data when parsing it from disk before updating application state or passing it to rendering functions. Implement strict type checking, bounds constraints (e.g., limits on font sizes or outline widths), and regex validation for structured strings like hex colors.
 
 ## 🛡️-05-20 - [PII Leakage in Local Transcriptions]
-**Vulnerability:** Real-time STT processes raw audio into text which might contain sensitive PII (Personally Identifiable Information) like credit card numbers or SSNs. This text is then pushed to UI overlays or WebSocket streams without redaction, creating a localized exposure risk even if processing is offline.
+**Vulnerability:** VaultWares Realtime processes raw audio into text which might contain sensitive PII (Personally Identifiable Information) like credit card numbers or SSNs. This text is then pushed to UI overlays or WebSocket streams without redaction, creating a localized exposure risk even if processing is offline.
 **Learning:** Local-first processing guarantees data doesn't leave the machine, but it doesn't prevent accidental local broadcasting (e.g., screen sharing the STT overlay during a meeting) or downstream logging of sensitive information.
 **Prevention:** Implement a local, low-latency PII redaction middleware step between the STT inference output and the final display/broadcast sinks.

@@ -1,10 +1,10 @@
 <img src="https://raw.githubusercontent.com/p-potvin/vault-themes/refs/heads/main/assets/logos/vaultwares-logo-dark.svg">
-# realtime-stt
+# Vaultwares-Realtime
 
 **Real-Time Speech-to-Text Engine**  
 **Part of the VaultWares Ecosystem** • <a href="https://docs.vaultwares.com">docs.vaultwares.com</a> • <a href="https://vaultwares.com">vaultwares.com</a>
 
-**High-performance, local-first real-time STT service (faster-whisper / Whisper-based) with low-latency streaming, multi-language support, and seamless integration into vaultwares-pipelines and vault-flows.**
+**High-performance, local-first VaultWares Realtime service (faster-whisper / Whisper-based) with low-latency streaming, multi-language support, and seamless integration into vaultwares-pipelines and vault-flows.**
 
 ## Overview
 This component provides real-time transcription and translation capabilities for video, audio streams, live meetings, and media processing pipelines across the VaultWares ecosystem.
@@ -27,8 +27,8 @@ This component provides real-time transcription and translation capabilities for
 ## Quick Start
 
 ```bash
-git clone https://github.com/p-potvin/realtime-stt.git
-cd realtime-stt
+git clone https://github.com/p-potvin/Vaultwares-Realtime.git
+cd Vaultwares-Realtime
 git submodule update --init --recursive
 pip install -r requirements.txt
 python run_server.py

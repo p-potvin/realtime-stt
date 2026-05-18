@@ -1,4 +1,4 @@
-# Real-Time STT Dashboard
+# VaultWares Realtime Dashboard
 
 - [x] Initial Scaffolding & Documentation.
 - [x] GPU/CUDA STT Integration (Faster-Whisper on RTX 3060).
@@ -20,7 +20,7 @@
 - [x] Concurrency: Implement graceful thread cleanup using `.join()` and `self.is_running = False` in UI closeEvent.
 - [x] Architecture: Extract `FasterWhisperWrapper` and `ParakeetV3Wrapper` instantiations to strategy-pattern Engine classes.
 - [x] Architecture: Extract hardcoded magic numbers into class constants.
-- [x] Architecture: Decouple GUI logic (`QApplication`, tray) from core audio logic (`RealTimeSTTApp`).
+- [x] Architecture: Decouple GUI logic (`QApplication`, tray) from core audio logic (`VaultwaresRealtimeApp`).
 - [x] Performance: Optimize audio chunk accumulation by avoiding `np.concatenate` where possible.
 - [x] Performance: Optimize lazy-loading logic to eliminate per-inference type checks (`isinstance(self.sttEngine)`).
 - [x] Fix VS Code warnings & typing errors in wrappers and code analysis docs.

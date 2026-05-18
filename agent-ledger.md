@@ -16,7 +16,7 @@
 
 ## 2026-05-08: Code Cleanup in STT Engine Orchestrator
 **Goal:** Improve maintainability and reduce clutter.
-**Decision:** Removed unused `import queue` and a redundant `else: pass` block with "not implemented" comments in `stt_engine/engine_orchestrator.py`.
+**Decision:** Removed unused `import queue` and a redundant `else: pass` block with "not implemented" comments in `vaultwares_realtime/engine_orchestrator.py`.
 **Reason:** Unused imports and dead code/comments reduce readability and increase noise. Following the "No Dead Code" policy from the project manifest.
 
 ## 2026-05-08: Strict Input Validation for Configuration (CSS Injection Prevention)
@@ -36,7 +36,7 @@
 
 ## 2026-05-15: Security Fix - Remove Global Monkey-Patching of subprocess.Popen
 **Goal:** Fix security vulnerability related to global state mutation.
-**Decision:** Removed the global monkey-patch of `subprocess.Popen` in `stt_engine/parakeet_wrapper.py`. Replaced it with a `hush_subprocess` context manager for localized patching during NeMo model initialization and updated `vault_sync.py` to use explicit `creationflags`.
+**Decision:** Removed the global monkey-patch of `subprocess.Popen` in `vaultwares_realtime/parakeet_wrapper.py`. Replaced it with a `hush_subprocess` context manager for localized patching during NeMo model initialization and updated `vault_sync.py` to use explicit `creationflags`.
 **Reason:** Global monkey-patching of standard library modules is a security risk and can lead to unintended side effects across the entire application. Localizing the behavior ensures that only the necessary calls are affected.
 
 ## 2026-05-18 - Add Keyboard Shortcuts and Focus Styles to Settings UI

@@ -1,3 +1,3 @@
-Agent Branding Reference (local mirror for realtime-stt)
+Agent Branding Reference (local mirror for Vaultwares-Realtime)
 This file is a local copy for agents.
 Always prefer the live version: https://raw.githubusercontent.com/p-potvin/vaultwares-docs/main/agents/branding.mdx

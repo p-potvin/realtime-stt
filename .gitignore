@@ -4,3 +4,5 @@ __pycache__/*
 audio_logs/
 *.log
 venv/
+build/
+dist/

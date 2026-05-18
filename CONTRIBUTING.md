@@ -1,4 +1,4 @@
-Contributing to Realtime STT
+Contributing to VaultWares Realtime
 Thank you for improving the speech layer of the VaultWares ecosystem.
 Mandatory Steps
 
