@@ -27,6 +27,7 @@ vault_sync.sync_vault_dependencies()
 from stt_engine.audio_capture import AudioRecorder
 from stt_engine.vad_logic import SileroVADWrapper
 from stt_engine.stt_strategies import WhisperStrategy, ParakeetStrategy
+from stt_engine.pii_redaction import PIIRedactor
 from gui_overlay.gui_controller import VaultWaresGUIController
 
 # Configure root logger for the application
@@ -79,6 +80,8 @@ class RealTimeSTTApp:
         self.device = device
         self.active_engine = "nvidia" # Default to Parakeet
         self.skip_vad = False
+        self.enable_pii_redaction = False
+        self.redactor = PIIRedactor()
         self.last_settings_version = -1       
         
         # Core components (Lazy initialized to speed up startup)
@@ -280,6 +283,8 @@ class RealTimeSTTApp:
             text = self.sttEngine.transcribe(full_audio, self.language, self.logger)
 
             if text and len(text.strip()) > 1:
+                if self.enable_pii_redaction:
+                    text = self.redactor.redact_text(text)
                 self.logger.info(f"Transcription ({self.language}) [{self.active_engine}]: {text}")
                 self.bridge.update_caption_signal.emit(text, label_idx)
             else:
@@ -318,6 +323,12 @@ class RealTimeSTTApp:
         if "skip_vad" in settings_dict and self.skip_vad != settings_dict["skip_vad"]:
             self.skip_vad = settings_dict["skip_vad"]
             self.logger.info(f"VAD Bypass set to: {self.skip_vad}")
+
+        if "enable_pii_redaction" in settings_dict and self.enable_pii_redaction != settings_dict["enable_pii_redaction"]:
+            self.enable_pii_redaction = settings_dict["enable_pii_redaction"]
+            self.logger.info(f"PII Redaction set to: {self.enable_pii_redaction}")
+            if hasattr(self, "sttEngine") and hasattr(self.sttEngine, "on_settings_changed"):
+                self.sttEngine.on_settings_changed(settings_dict)
         
         if "active_engine" in settings_dict:
             new_engine = settings_dict["active_engine"].lower()

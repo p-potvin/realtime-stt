@@ -7,6 +7,7 @@ from typing import Optional, Callable
 from stt_engine.audio_capture import AudioRecorder
 from stt_engine.vad_logic import SileroVADWrapper
 from stt_engine.fastconformer_wrapper import FastConformerWrapper
+from stt_engine.pii_redaction import PIIRedactor
 
 class RealtimeSTTEngine:
     """
@@ -38,6 +39,8 @@ class RealtimeSTTEngine:
         
         # Components
         self.recorder = AudioRecorder(samplerate=samplerate)
+        self.redactor = PIIRedactor()
+        self.enable_pii_redaction = False
         self.vad = SileroVADWrapper(samplerate=samplerate, device=device)
         self.stt = FastConformerWrapper()
         
@@ -48,6 +51,11 @@ class RealtimeSTTEngine:
         # Bolt: O(1) running counter to avoid O(N) recalculations on high-frequency hot paths
         self.current_samples = 0
         self.speech_detected = False
+
+    def on_settings_changed(self, settings_dict: dict):
+        if "enable_pii_redaction" in settings_dict and self.enable_pii_redaction != settings_dict["enable_pii_redaction"]:
+            self.enable_pii_redaction = settings_dict["enable_pii_redaction"]
+            self.logger.info(f"Orchestrator PII Redaction set to: {self.enable_pii_redaction}")
 
     def _process_loop(self):
         """Main processing thread: captures, buffers, and transcribes."""
@@ -113,6 +121,8 @@ class RealtimeSTTEngine:
                 
                 duration = time.time() - start_time
                 if full_text:
+                    if self.enable_pii_redaction:
+                        full_text = self.redactor.redact_text(full_text)
                     self.logger.info(f"Transcription ({duration:.2f}s): {full_text}")
                     if self.callback:
                         self.callback(full_text)
