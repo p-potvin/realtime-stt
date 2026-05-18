@@ -25,3 +25,6 @@
 ## 2025-05-18 - NumPy Mono Channel Audio Buffer Flattening
 **Learning:** When stripping the channel dimension from a mono-channel audio buffer returned from `soundcard` (e.g., shape `[512, 1]` to `[512]`), using `data.ravel().astype(np.float32, copy=False)` is approximately 3x faster than array slicing `data[:, 0].astype(np.float32)`. `ravel()` takes advantage of numpy's low-overhead view reshaping to bypass the copy overhead introduced by explicit indexing and `.astype(copy=True)`.
 **Action:** Use `.ravel().astype(..., copy=False)` instead of slicing when flattening single-channel multi-dimensional audio buffers in hot paths.
+## 2026-05-08 - PyTorch Item Extraction Hallucination
+**Learning:** In PyTorch, converting a 1-element GPU tensor to a standard Python float via `float(tensor)` requires a device-to-host transfer and synchronization, functionally identical to using `.item()`. Replacing `.item()` with `float()` does not provide any performance benefit or latency reduction for avoiding CPU synchronization.
+**Action:** Do not attempt to bypass device-to-host synchronization overhead by replacing `.item()` with `float()`.
