@@ -35,5 +35,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['C:\\Users\\Administrator\\Desktop\\Github Repos\\.builds\\icons\\Vaultwares-Realtime.ico'],
+    icon=['C:\\Users\\Administrator\\Desktop\\Github Repos\\.builds\\icons\\vaultwares-realtime.ico'],
 )

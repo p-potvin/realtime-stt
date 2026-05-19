@@ -28,7 +28,7 @@ max_silence_chunks = 25 # ~0.8 seconds of silence to flush buffer
 - **Hardcoded Magic Numbers**:
   `self._proc_counter % 20 == 0`, `peak_val > 0.15`, and magic loop variables should be extracted into class-level constants or configurable properties.
 - **Decouple UI and Core Logic**:
-  The `RealTimeSTTApp` class mixes GUI logic (PySide6 initialization, tray icon drawing, setting signal connections) with core audio logic. These should be decoupled into a `MainWindowController` and an `AudioPipelineCoordinator`.
+  The `VaultwaresRealtimeApp` class mixes GUI logic (PySide6 initialization, tray icon drawing, setting signal connections) with core audio logic. These should be decoupled into a `MainWindowController` and an `AudioPipelineCoordinator`.
 - **Event-Driven Configuration**:
   `on_settings_changed` relies on arbitrary dictionary strings (e.g., `"skip_vad"`). Consider adopting a strongly typed dataclass or Pydantic model for Settings state management.
 
