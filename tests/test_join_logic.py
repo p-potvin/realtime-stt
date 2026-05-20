@@ -7,7 +7,7 @@ class Segment:
 class TestJoinLogic(unittest.TestCase):
     def test_join_generator_whisper_wrapper(self):
         segments = [Segment("Hello "), Segment("world!")]
-        # Simulation of what's in stt_engine/faster_whisper_wrapper.py
+        # Simulation of what's in vaultwares_realtime/faster_whisper_wrapper.py
         text = "".join(s.text for s in segments).strip()
         self.assertEqual(text, "Hello world!")
 
@@ -19,7 +19,7 @@ class TestJoinLogic(unittest.TestCase):
 
     def test_join_generator_orchestrator(self):
         segments = [Segment("Hello"), Segment("world")]
-        # Simulation of what's in stt_engine/engine_orchestrator.py
+        # Simulation of what's in vaultwares_realtime/engine_orchestrator.py
         full_text = " ".join(seg.text for seg in segments).strip()
         self.assertEqual(full_text, "Hello world")
 

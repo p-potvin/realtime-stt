@@ -17,17 +17,12 @@ import argparse
 import subprocess
 import queue
 
-import vault_sync
 from PySide6.QtCore import Signal, QObject
 
-# Run vault synchronization at startup
-vault_sync.sync_vault_dependencies()
-# (Re-enabled after verification)
-
-from stt_engine.audio_capture import AudioRecorder
-from stt_engine.vad_logic import SileroVADWrapper
-from stt_engine.stt_strategies import WhisperStrategy, ParakeetStrategy
-from stt_engine.pii_redaction import PIIRedactor
+from vaultwares_realtime.audio_capture import AudioRecorder
+from vaultwares_realtime.vad_logic import SileroVADWrapper
+from vaultwares_realtime.stt_strategies import WhisperStrategy, ParakeetStrategy
+from vaultwares_realtime.pii_redaction import PIIRedactor
 from gui_overlay.gui_controller import VaultWaresGUIController
 
 # Configure root logger for the application
@@ -36,7 +31,7 @@ root_logger = logging.getLogger()
 root_logger.setLevel(logging.DEBUG)
 
 # Create a file handler so debug logs can be seen even with pythonw
-file_handler = logging.FileHandler("realtime_stt.log", mode="w", encoding="utf-8")
+file_handler = logging.FileHandler("vaultwares_realtime.log", mode="w", encoding="utf-8")
 file_handler.setFormatter(log_formatter)
 root_logger.addHandler(file_handler)
 
@@ -49,7 +44,7 @@ class CommunicationBridge(QObject):
     """Bridge for cross-thread signals to the PySide6 UI."""
     update_caption_signal = Signal(str, int)
 
-class RealTimeSTTApp:
+class VaultwaresRealtimeApp:
     """
     Core Application orchestrating audio capture, VAD filtering, 
     Faster-Whisper transcription, and GUI overlay updates.
@@ -67,7 +62,7 @@ class RealTimeSTTApp:
     def __init__(self, model_size="distil-small.en", device="cpu", language="en", theme_idx=2):
         self.correlation_id = "c" + secrets.token_hex(3)
         self.logger = logging.getLogger("vaultwares.main")
-        self.logger.info(f"Starting realtime-stt app (CorrelationId: {self.correlation_id})")
+        self.logger.info(f"Starting Vaultwares-Realtime app (CorrelationId: {self.correlation_id})")
         
         # Performance: Initialize log directory once at startup to prevent
         # redundant disk I/O in the high-frequency _run_stt loop.
@@ -327,8 +322,6 @@ class RealTimeSTTApp:
         if "enable_pii_redaction" in settings_dict and self.enable_pii_redaction != settings_dict["enable_pii_redaction"]:
             self.enable_pii_redaction = settings_dict["enable_pii_redaction"]
             self.logger.info(f"PII Redaction set to: {self.enable_pii_redaction}")
-            if hasattr(self, "sttEngine") and hasattr(self.sttEngine, "on_settings_changed"):
-                self.sttEngine.on_settings_changed(settings_dict)
         
         if "active_engine" in settings_dict:
             new_engine = settings_dict["active_engine"].lower()
@@ -355,14 +348,14 @@ class RealTimeSTTApp:
         self.logger.info("Background Thread: Whisper Engine eager load complete.")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="VaultWares Real-Time STT")
+    parser = argparse.ArgumentParser(description="VaultWares VaultWares Realtime")
     parser.add_argument("--model", type=str, default="medium", help="Faster-Whisper model size")
     parser.add_argument("--device", type=str, default="cpu", help="Execution device (cuda/cpu)")
     parser.add_argument("--lang", type=str, default="en", help="Target language (e.g., en, fr, es)")
     parser.add_argument("--theme", type=int, default=2, help="Initial theme index (1-9)")
     args = parser.parse_args()
 
-    app_instance = RealTimeSTTApp(
+    app_instance = VaultwaresRealtimeApp(
         model_size=args.model, 
         device=args.device,
         language=args.lang,

@@ -16,7 +16,7 @@ sys.modules["nemo"] = nemo
 sys.modules["nemo.collections"] = nemo.collections
 sys.modules["nemo.collections.asr"] = nemo.collections.asr
 
-import stt_engine.parakeet_wrapper as pw
+import vaultwares_realtime.parakeet_wrapper as pw
 
 def test_popen_not_patched_globally(os_name):
     print(f"Testing for OS: {os_name}")

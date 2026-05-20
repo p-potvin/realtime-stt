@@ -7,9 +7,11 @@
 **High-performance, local-first VaultWares Realtime service (faster-whisper / Whisper-based) with low-latency streaming, multi-language support, and seamless integration into vaultwares-pipelines and vault-flows.**
 
 ## Overview
+
 This component provides real-time transcription and translation capabilities for video, audio streams, live meetings, and media processing pipelines across the VaultWares ecosystem.
 
 ## Features
+
 - Real-time streaming transcription
 - Multi-language support + auto-translation
 - Local-first execution (GPU/CPU optimized)
@@ -36,7 +38,7 @@ python run_server.py
 
 Architecture &amp; Agent Integration
 Fully synchronized with the VaultWares Agent Knowledge Dissemination System:
-→ https://raw.githubusercontent.com/p-potvin/vaultwares-docs/main/agents/knowledge-dissemination.mdx
+→ <https://raw.githubusercontent.com/p-potvin/vaultwares-docs/main/agents/knowledge-dissemination.mdx>
 Can invoke the full coordinated agent team via invoke_vaultwares_team skill from vaultwares-agentciation.
 Privacy &amp; Security
 
