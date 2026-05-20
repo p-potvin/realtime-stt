@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/p-potvin/vault-themes/refs/heads/main/assets/logos/vaultwares-logo-dark.svg">
+<img src="https://raw.githubusercontent.com/p-potvin/vaultwares-themes/refs/heads/main/assets/logos/vaultwares-logo-dark.svg">
 # Vaultwares-Realtime
 
 **Real-Time Speech-to-Text Engine**  
@@ -39,7 +39,7 @@ python run_server.py
 Architecture &amp; Agent Integration
 Fully synchronized with the VaultWares Agent Knowledge Dissemination System:
 → <https://raw.githubusercontent.com/p-potvin/vaultwares-docs/main/agents/knowledge-dissemination.mdx>
-Can invoke the full coordinated agent team via invoke_vaultwares_team skill from vaultwares-agentciation.
+Can invoke the full coordinated agent team via invoke_vaultwares_team skill from vaultwares-adk.
 Privacy &amp; Security
 
 All processing happens locally by default
