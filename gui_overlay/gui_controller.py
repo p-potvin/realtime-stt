@@ -3,7 +3,7 @@ import threading
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
 from PySide6.QtGui import QIcon, QPixmap, QColor, QPainter
 from gui_overlay.overlay_window import SubtitleWindow, SettingsWindow
-from stt_engine.stt_strategies import WhisperStrategy
+from vaultwares_realtime.stt_strategies import WhisperStrategy
 
 class VaultWaresGUIController:
     def __init__(self, stt_app):
@@ -24,7 +24,7 @@ class VaultWaresGUIController:
 
     def _setup_tray_icon(self):
         self.tray_icon = QSystemTrayIcon(self._create_tray_icon(), self.app)
-        self.tray_icon.setToolTip("VaultWares Real-Time STT")
+        self.tray_icon.setToolTip("VaultWares VaultWares Realtime")
         
         tray_menu = QMenu()
         settings_action = tray_menu.addAction("Settings")

@@ -1,4 +1,0 @@
-# VaultWares Git Submodule Manifest
-# Pattern: [Target Folder] [GitHub HTTPS URL] [Branch/Tag]
-
-vault_themes https://github.com/p-potvin/vault-themes.git main

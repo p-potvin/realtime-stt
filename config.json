@@ -1,9 +1,9 @@
 {
     "theme_idx": 2,
     "font_family": "Segoe UI",
-    "font_size": 13,
+    "font_size": 22,
     "font_weight": 700,
-    "font_italic": true,
+    "font_italic": false,
     "font_underline": false,
     "text_color": "#00aa00",
     "outline_color": "#aa0000",

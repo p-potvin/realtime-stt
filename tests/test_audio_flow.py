@@ -15,14 +15,14 @@ class TestAudioFlow(unittest.TestCase):
         self.patcher.stop()
 
     def test_recorder_initialization(self):
-        from stt_engine.audio_capture import AudioRecorder
+        from vaultwares_realtime.audio_capture import AudioRecorder
         recorder = AudioRecorder(samplerate=16000, blocksize=512)
         self.assertEqual(recorder.samplerate, 16000)
         self.assertEqual(recorder.blocksize, 512)
         self.assertFalse(recorder.is_recording)
 
     def test_vad_processing(self):
-        from stt_engine.vad_logic import SileroVADWrapper
+        from vaultwares_realtime.vad_logic import SileroVADWrapper
         vad = SileroVADWrapper(bypass=True) # Bypass for CI/CD speed
         dummy_audio = np.zeros(512, dtype=np.float32)
         # Should be 0.0 for zeros
@@ -30,7 +30,7 @@ class TestAudioFlow(unittest.TestCase):
         self.assertEqual(prob, 0.0)
 
     def test_agc_scaling(self):
-        from stt_engine.audio_capture import AudioRecorder
+        from vaultwares_realtime.audio_capture import AudioRecorder
         recorder = AudioRecorder()
         # Mocking a quiet chunk
         quiet_chunk = np.ones(512, dtype=np.float32) * 0.05

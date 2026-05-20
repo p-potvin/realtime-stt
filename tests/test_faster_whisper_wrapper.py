@@ -1,11 +1,11 @@
 import unittest
 from unittest.mock import MagicMock, patch
-from stt_engine.faster_whisper_wrapper import FasterWhisperWrapper
+from vaultwares_realtime.faster_whisper_wrapper import FasterWhisperWrapper
 
 class TestFasterWhisperWrapper(unittest.TestCase):
     def setUp(self):
         # We don't want to actually load a model for these tests
-        with patch('stt_engine.faster_whisper_wrapper.WhisperModel', return_value=MagicMock()):
+        with patch('vaultwares_realtime.faster_whisper_wrapper.WhisperModel', return_value=MagicMock()):
             self.wrapper = FasterWhisperWrapper()
 
     def test_format_timestamp_zero(self):

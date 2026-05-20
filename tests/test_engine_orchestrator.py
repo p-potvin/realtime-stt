@@ -8,7 +8,7 @@ sys.modules['soundcard'] = types.SimpleNamespace()
 
 import numpy as np
 
-from stt_engine.engine_orchestrator import RealtimeSTTEngine
+from vaultwares_realtime.engine_orchestrator import VaultwaresRealtimeEngine
 
 
 class _DummyRecorder:
@@ -28,7 +28,7 @@ class _DummyRecorder:
 
 class RealtimeEngineFlushTests(unittest.TestCase):
     def test_process_loop_flushes_buffered_audio_on_shutdown(self):
-        engine = RealtimeSTTEngine.__new__(RealtimeSTTEngine)
+        engine = VaultwaresRealtimeEngine.__new__(VaultwaresRealtimeEngine)
         engine.logger = logging.getLogger("test.engine")
         engine.running = False
         engine.audio_buffer = [np.ones(3200, dtype=np.float32)]

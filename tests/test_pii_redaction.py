@@ -1,5 +1,5 @@
 import pytest
-from stt_engine.pii_redaction import PIIRedactor
+from vaultwares_realtime.pii_redaction import PIIRedactor
 
 def test_pii_redaction():
     redactor = PIIRedactor()

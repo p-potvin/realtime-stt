@@ -63,7 +63,7 @@ class SubtitleWindow(QMainWindow):
         self.main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setCentralWidget(self.central_widget)
 
-        self.caption_label = QLabel("Real-time STT Active...")
+        self.caption_label = QLabel("VaultWares Realtime Active...")
         self.caption_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.caption_label.setWordWrap(True)
 
@@ -222,7 +222,7 @@ class SubtitleWindow(QMainWindow):
 
 class SettingsWindow(QMainWindow):
     """
-    Settings Panel for Real-Time STT, separated from the overlay.
+    Settings Panel for VaultWares Realtime, separated from the overlay.
     """
     debug_toggle_signal = Signal(bool)
     settings_changed_signal = Signal(dict)
@@ -233,7 +233,7 @@ class SettingsWindow(QMainWindow):
         self.theme_manager = VaultThemeManager()
         self.current_theme_idx = theme_idx
 
-        self.setWindowTitle("Real-Time STT Settings")
+        self.setWindowTitle("VaultWares Realtime Settings")
 
         # State versioning to prevent signal loops
         self.settings_version = 0
