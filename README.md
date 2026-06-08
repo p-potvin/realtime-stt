@@ -39,7 +39,7 @@ python run_server.py
 Architecture &amp; Agent Integration
 Fully synchronized with the VaultWares Agent Knowledge Dissemination System:
 → <https://raw.githubusercontent.com/p-potvin/vaultwares-docs/main/agents/knowledge-dissemination.mdx>
-Can invoke the full coordinated agent team via invoke_vaultwares_team skill from vaultwares-adk.
+Can invoke the full coordinated agent team via <code>invoke_vaultwares_team</code> skill from <code>vaultwares-adk</code>.
 Privacy &amp; Security
 
 All processing happens locally by default
