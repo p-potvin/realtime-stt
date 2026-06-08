@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/p-potvin/vaultwares-themes/refs/heads/main/assets/logos/vaultwares-logo-dark.svg">
+<img src="https://raw.githubusercontent.com/p-potvin/vaultwares-themes/refs/heads/main/assets/logos/vaultwares-logo-dark.svg" alt="Vaultwares Logo">
 # Vaultwares-Realtime
 
 **Real-Time Speech-to-Text Engine**  
